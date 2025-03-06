@@ -1,143 +1,99 @@
 from tkinter import *
-# filedialog函数用于上传文件
-from tkinter import filedialog
-# 因为头像是图片需要用到pillow库
-from tkinter import messagebox
 from tkinter import ttk
-import tkinter.font as tkFont
-from PIL import Image
+from tkinter import messagebox
+from tkinter import font as tkFont
 import os
-
 import cv2
 import numpy as np
 import sys
 from pydub import AudioSegment
-
 import subprocess
-
 import webbrowser
-
 import math
 
-# 创建窗口
-win = Tk()
-# 设置窗口标题
-win.title('明日方舟自动分离/剪掉暂停')
+#global variable
+path = os.getcwd()
+working_path = path + "\\working_folder\\"
 
-dir=os.getcwd()
-#print(len(dir.encode('utf-8')))
-# 设置窗口宽度和高度
-win.geometry(str(1100+len(dir.encode('utf-8'))*5)+'x850')
-
-var1=StringVar()
-var2=StringVar()
-var3=StringVar()
-
-var2.set("显示说明")
-#var3.set("懒人模式下生成时间约等于视频原长\n正常模式下生成时间会略长")
-
-
-def b17cb():       
-    flag=True
-    file_cnt = 0    
-    for lists in os.listdir(dir+"\working_folder"):
-        file_cnt = file_cnt + 1
-    if(file_cnt==1):
-        path=os.getcwd()
-        working_path=path+"/working_folder/"
-        cap = cv2.VideoCapture("./working_folder/"+os.listdir(working_path)[0])
-        full_path = "./working_folder/"+os.listdir(working_path)[0]
-        frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        fps=cap.get(cv2.CAP_PROP_FPS)
-        cap.release()
-    if(not(e5.get().replace('-','').isdigit() and e6.get().replace('-','').isdigit() and e7.get().replace('-','').isdigit() and e8.get().replace('-','').isdigit() and e10.get().isdigit() and e11.get().isdigit())):
-        messagebox.showerror(title="出错了！", message="参数存在非数字类型")
-        flag=False
-    elif(int(e5.get())>=200 or int(e6.get())>=200 or int(e7.get())>=200 or int(e8.get())>=200):
+def check_margin(top_margin,bottom_margin,left_margin,right_margin):
+    if not(top_margin.replace('-','').isdigit() and bottom_margin.replace('-','').isdigit() and left_margin.replace('-','').isdigit() and right_margin.replace('-','').isdigit()):
+        messagebox.showerror(title="出错了！", message="边距参数有误（需整数）")
+        return False
+    if int(top_margin)>=200 or int(bottom_margin)>=200 or int(left_margin)>=200 or int(right_margin)>=200:
         messagebox.showerror(title="出错了！", message="边距像素数过大，请重新设置")
-        flag=False
-    elif(int(e10.get())>=int(e11.get())):            
-        messagebox.showerror(title="出错了！", message="结束秒数必须大于开始秒数")
-        flag=False
-    elif(os.listdir(dir+"\working_folder")[0].startswith("out")):
-        messagebox.showerror(title="出错了！", message="文件名不得以out开头，请重命名")  
-        flag=False    
-    elif(frame_cont/int(fps)<=int(e11.get())):
-        messagebox.showerror(title="出错了！", message="结束秒数必须小于视频长度")    
-        flag=False
-    elif int(fps)!=fps:
-            messagebox.showinfo(title="注意", message="视频帧数为非整数，可能会有剪辑问题，点击确定或关闭窗口以继续")
-    if(flag):
-        if(b15cb()):
-            if(b16cb()):
-                b11_2cb()
-    
-def b16cb():    
-    file_cnt = 0    
-    for lists in os.listdir(dir+"\working_folder"):
-        file_cnt = file_cnt + 1
-    if(int(e5.get())<0 or int(e6.get())<0 or int(e7.get())<0 or int(e8.get())<0):
+        return False
+    return True
+
+def check_crop(top_margin,bottom_margin,left_margin,right_margin,video_name):
+    if int(top_margin)<0 or int(bottom_margin)<0 or int(left_margin)<0 or int(right_margin)<0:
         messagebox.showerror(title="出错了！", message="不能裁剪负数边距（剪暂停不影响）")
         return False
-    elif(file_cnt==1):
-        path=os.getcwd()
-        working_path=path+"/working_folder/"
-        full_path = "./working_folder/"+os.listdir(working_path)[0]     
-        #print('full path is ', full_path)
-        orig_name=os.listdir(working_path)[0]
-        cap = cv2.VideoCapture("./working_folder/"+os.listdir(working_path)[0])
-        lgt=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))       #length
-        hgt=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))    #height   
-        out = './working_folder/aftercrop.mp4'
-        top_m=int(e5.get())
-        bot_m=int(e6.get())
-        lft_m=int(e7.get())
-        rgt_m=int(e8.get())
-        W=str(lgt-lft_m-rgt_m)
-        H=str(hgt-top_m-bot_m)
-        X=str(lft_m)
-        Y=str(top_m)
-        print('开始裁剪')
-        subprocess.call('ffmpeg -loglevel ''quiet'' -i "'+full_path+'" -b:v 0 -vf crop='+W+':'+H+':'+X+':'+Y+' '+out,shell = True)
-        cap.release()
-        os.rename(full_path,"./"+orig_name)
-        print("已完成，请在working_folder下查看裁剪后的aftercrop.mp4文件，原文件已移动至上级目录")   
-        e5.delete(0, END)
-        e6.delete(0, END)
-        e7.delete(0, END)  
-        e8.delete(0, END)
-        e5.insert(0,int(0))
-        e6.insert(0,int(0))
-        e7.insert(0,int(0))
-        e8.insert(0,int(0))        
-        return True
-    else:        
-        messagebox.showerror(title="出错了！", message="工作目录下文件数必须为1")
-        return False
+    if video_name=="aftercrop.mp4":
+        messagebox.showerror(title="出错了！", message="裁剪文件名不能为aftercrop.mp4")
+        return False      
+    if os.path.exists(path+"/"+video_name):  
+        messagebox.showerror(title="出错了！", message="上级目录已存在同文件名，请重命名")
+        return False      
+    return True
 
-def b15cb():    
+def check_start_end_seconds(start_second,end_second):
+    if not(start_second.isdigit() and end_second.isdigit()):
+        messagebox.showerror(title="出错了！", message="开始结束秒数有误（需正整数）")
+        return False
+    if int(start_second)>=int(end_second):            
+        messagebox.showerror(title="出错了！", message="结束秒数必须大于开始秒数")
+        return False
+    return True
+
+def check_file_and_return_path():      
     file_cnt = 0    
-    for lists in os.listdir(dir+"\working_folder"):
+    working_folder_list = os.listdir(working_path)
+    for lists in working_folder_list:
         file_cnt = file_cnt + 1
-    if(file_cnt==1):
-        path=os.getcwd()
-        working_path=path+"/working_folder/"
-        cap = cv2.VideoCapture("./working_folder/"+os.listdir(working_path)[0])
-        full_path = "./working_folder/"+os.listdir(working_path)[0]
-        frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        fps=cap.get(cv2.CAP_PROP_FPS)
-        lgt=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))       #length
-        hgt=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))    #height
-        top_rgt_x=0
-        top_rgt_y=0
-        bot_lft_x=0
-        bot_lft_y=0
-        if(not(e14.get().replace('.','').isdigit() and float(e14.get()) > 0)):
-            messagebox.showerror(title="出错了！", message="检测边距秒数必须大于0")
+    if file_cnt==1:
+        if working_folder_list[0].startswith("out"):
+            messagebox.showerror(title="出错了！", message="文件名不得以out开头，请重命名") 
             return False
-        else:        
+        return working_path + os.listdir(working_path)[0]            
+    messagebox.showerror(title="出错了！", message="工作目录下文件数必须为1")
+    return False
+      
+def check_measure_margin_second(measure_margin_second):
+    if not(measure_margin_second.replace('.','',1).isdigit()):
+        messagebox.showerror(title="出错了！", message="检测边距秒数有误（需大于0的数字，接受小数）")
+        return False
+    if not(float(measure_margin_second) > 0):
+        messagebox.showerror(title="出错了！", message="检测边距秒数必须大于0")
+        return False
+    return True  
+  
+def set_margin(top_margin,bottom_margin,left_margin,right_margin):     
+    e_top_margin.delete(0, END)
+    e_bottom_margin.delete(0, END)
+    e_left_margin.delete(0, END)  
+    e_right_margin.delete(0, END)
+    e_top_margin.insert(0, top_margin)
+    e_bottom_margin.insert(0, bottom_margin)
+    e_left_margin.insert(0, left_margin)
+    e_right_margin.insert(0, right_margin)        
+  
+#TODO: come back later for this logic change then format
+def measure_margin(measure_margin_second):  
+    if check_measure_margin_second(measure_margin_second):        
+        video_path=check_file_and_return_path()
+        if video_path:   
+            cap = cv2.VideoCapture(video_path)
+            frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            fps=cap.get(cv2.CAP_PROP_FPS)
+            lgt=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))       #length
+            hgt=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))    #height
+            top_rgt_x=0
+            top_rgt_y=0
+            bot_lft_x=0
+            bot_lft_y=0
+            
             c = 0
-            while c < int(fps)*float(e14.get()):
+            while c < int(fps)*float(measure_margin_second):
                 ret, frame = cap.read()   
                 c=c+1
             x=lgt-1
@@ -174,6 +130,7 @@ def b15cb():
                 x=x-1
             
             y=hgt-1
+            bot_m = 1000 #default too big num
             while y >=0:
                 x=0
                 blue_cnt=0
@@ -187,6 +144,7 @@ def b15cb():
                 y=y-1
             
             x=0
+            lft_m = 1000 #default too big num
             while x<=lgt-1:
                 y=0
                 light_grey_cnt=0
@@ -212,221 +170,110 @@ def b15cb():
             else:
                 #print('top_rgt_x is ', top_rgt_x)
                 rgt_m=lgt-1-top_rgt_x
-                top_m=math.floor(top_rgt_y-2-1/3*(bot_lft_y+1-top_rgt_y+2))                   
+                top_m=math.floor(top_rgt_y-2-1/3*(bot_lft_y+1-top_rgt_y+2)) 
+                #print(top_m,bot_m,lft_m,rgt_m)
                 if(top_m>500 or bot_m>500 or lft_m>500 or rgt_m>500):
                     messagebox.showerror(title="出错了！", message="计算有误，请重新输入正确的检测边距秒数（显示编队的帧）")
-                    return False                
-                #print('rgt_m is, top_m is', rgt_m, top_m)        
-                e5.delete(0, END)
-                e6.delete(0, END)
-                e7.delete(0, END)  
-                e8.delete(0, END)
-                e5.insert(0,int(top_m))
-                e6.insert(0,int(bot_m))
-                e7.insert(0,int(lft_m))
-                e8.insert(0,int(rgt_m))
+                    return False                   
+                set_margin(top_m,bot_m,lft_m,rgt_m)
                 messagebox.showinfo(title="消息", message="边距已填充")
                 return True
-        cap.release()
-    else:        
-        messagebox.showerror(title="出错了！", message="工作目录下文件数必须为1")
-        return False
-
-        
-def b2cb():    
-    if var2.get()=="显示说明":
-        b2.destroy()
-        l3=Label(win, text="懒人模式将会自动剪掉暂停\n并且加速1倍速的部分为2倍速",font=20,height=3,width=30)
-        l3_2=Label(win, text="适用于无需保留音效",font=20,width=30)
-        l3_3=Label(win, text="此模式只会生成1个文件",font=20)
-        l4=Label(win, text="正常模式将会自动分离暂停部分\n并且保留音效",font=20,height=3,width=30)
-        l4_2=Label(win, text="适用于需要保留音效\n（注：正常模式不支持mkv格式）",font=20,width=30)
-        l4_3=Label(win, text="此模式会生成较多文件",font=20)
-        l3.grid(row=2)
-        l3_2.grid(row=2,column=1)
-        l3_3.grid(row=2,column=2)
-        l4.grid(row=3)
-        l4_2.grid(row=3,column=1)
-        l4_3.grid(row=3,column=2)
+            cap.release()
+        else:        
+            return False
+         
+def cut_with_crop(start_second,end_second,measure_margin_second): 
+    if check_start_end_seconds(start_second,end_second):
+        if measure_margin(measure_margin_second):
+            if crop(e_top_margin.get(),e_bottom_margin.get(),e_left_margin.get(),e_right_margin.get()):
+                cut_without_crop(e_mode.get(),e_top_margin.get(),e_bottom_margin.get(),e_left_margin.get(),e_right_margin.get(),start_second,end_second)
  
-def b11cb():
-    if(not(e5.get().replace('-','').isdigit() and e6.get().replace('-','').isdigit() and e7.get().replace('-','').isdigit() and e8.get().replace('-','').isdigit())):
-        messagebox.showerror(title="出错了！", message="参数存在非数字类型")
-    elif(int(e5.get())>=200 or int(e6.get())>=200 or int(e7.get())>=200 or int(e8.get())>=200):
-        messagebox.showerror(title="出错了！", message="边距像素数过大，请重新设置")
-    else:
-        f=open(dir+"/设置.txt","w+")
-        f.write(e5.get()+"\n")
-        f.write(e6.get()+"\n")
-        f.write(e7.get()+"\n")
-        f.write(e8.get()+"\n")
+def crop(top_margin,bottom_margin,left_margin,right_margin):
+    video_path=check_file_and_return_path()
+    if video_path:
+        if check_margin(top_margin,bottom_margin,left_margin,right_margin):
+            orig_name=os.listdir(working_path)[0]
+            if check_crop(top_margin,bottom_margin,left_margin,right_margin,orig_name):
+                cap = cv2.VideoCapture(video_path)
+                lgt=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))     #length
+                hgt=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))    #height 
+                cap.release()  
+                out = working_path + 'aftercrop.mp4'
+                W=str(lgt-int(left_margin)-int(right_margin))
+                H=str(hgt-int(top_margin)-int(bottom_margin))
+                X=left_margin
+                Y=top_margin
+                print('开始裁剪')
+                subprocess.call('ffmpeg -loglevel ''quiet'' -i "'+video_path+'" -b:v 0 -vf crop='+W+':'+H+':'+X+':'+Y+' '+out,shell = True)
+                os.rename(video_path,"./"+orig_name)
+                print("已完成，请在working_folder下查看裁剪后的aftercrop.mp4文件，原文件已移动至上级目录")   
+                set_margin(0,0,0,0)        
+                return True
+        
+def show_desc():    
+    b_show_desc.destroy()
+    l3=Label(win, text="懒人模式将会自动剪掉暂停\n并且加速1倍速的部分为2倍速",font=20,height=3,width=30)
+    l3_2=Label(win, text="适用于无需保留音效",font=20,width=30)
+    l3_3=Label(win, text="此模式只会生成1个文件",font=20)
+    l4=Label(win, text="正常模式将会自动分离暂停部分\n并且保留音效",font=20,height=3,width=30)
+    l4_2=Label(win, text="适用于需要保留音效\n（注：正常模式不支持mkv格式）",font=20,width=30)
+    l4_3=Label(win, text="此模式会生成较多文件",font=20)
+    l3.grid(row=2)
+    l3_2.grid(row=2,column=1)
+    l3_3.grid(row=2,column=2)
+    l4.grid(row=3)
+    l4_2.grid(row=3,column=1)
+    l4_3.grid(row=3,column=2)
+ 
+def save_settings(mode_i,top_margin,bottom_margin,left_margin,right_margin):
+    if check_margin(top_margin,bottom_margin,left_margin,right_margin):
+        f=open(path+"/设置.txt","w+")
+        f.write(str(mode_i)+"\n")
+        f.write(top_margin+"\n")
+        f.write(bottom_margin+"\n")
+        f.write(left_margin+"\n")
+        f.write(right_margin+"\n")
         f.close()
         messagebox.showinfo(title="消息", message="设置已保存")
         
-def b11_2cb():
-    file_cnt = 0    
-    for lists in os.listdir(dir+"\working_folder"):
-        file_cnt = file_cnt + 1
-    if(file_cnt==1):
-        path=os.getcwd()
-        working_path=path+"/working_folder/"
-        cap = cv2.VideoCapture("./working_folder/"+os.listdir(working_path)[0])
-        full_path = "./working_folder/"+os.listdir(working_path)[0]
-        frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        fps=cap.get(cv2.CAP_PROP_FPS)
-        cap.release()
-    if(not(e5.get().replace('-','').isdigit() and e6.get().replace('-','').isdigit() and e7.get().replace('-','').isdigit() and e8.get().replace('-','').isdigit() and e10.get().isdigit() and e11.get().isdigit())):
-        messagebox.showerror(title="出错了！", message="参数存在非数字类型")
-    elif(int(e5.get())>=200 or int(e6.get())>=200 or int(e7.get())>=200 or int(e8.get())>=200):
-        messagebox.showerror(title="出错了！", message="边距像素数过大，请重新设置")
-    elif(int(e10.get())>=int(e11.get())):            
-        messagebox.showerror(title="出错了！", message="结束秒数必须大于开始秒数")
-    elif(file_cnt!=1):
-        messagebox.showerror(title="出错了！", message="工作目录下文件数必须为1")
-    elif(os.listdir(dir+"\working_folder")[0].startswith("out")):
-        messagebox.showerror(title="出错了！", message="文件名不得以out开头，请重命名")      
-    elif(frame_cont/int(fps)<=int(e11.get())):
-        messagebox.showerror(title="出错了！", message="结束秒数必须小于视频长度")    
-    elif(e2.get()=="懒人模式（保留有效暂停）" or e2.get()=="懒人模式（暂停全剪）"):
-        if int(fps)!=fps:
-            messagebox.showinfo(title="注意", message="视频帧数为非整数，可能会有剪辑问题，点击确定或关闭窗口以继续")
-        lazy_version(e5.get(),e6.get(),e7.get(),e8.get(),e10.get(),e11.get(),e2.get())
-        print("已完成，请在working_folder下查看out.mp4文件")
-        var3.set("已完成，请在working_folder下查看out.mp4文件")
-    elif(e2.get()=="正常模式（仅保留无效暂停音效）" or e2.get()=="正常模式（保留无效暂停视频）"):
-        if int(fps)!=fps:
-            messagebox.showinfo(title="注意", message="视频帧数为非整数，可能会有剪辑问题，点击确定或关闭窗口以继续")
-        normal_version(e5.get(),e6.get(),e7.get(),e8.get(),e10.get(),e11.get(),e2.get())
-        print("已完成，请在working_folder下查看分离的mp4文件")
-        var3.set("已完成，请在working_folder下查看分离的mp4文件")
+def cut_without_crop(mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second):
+    if check_start_end_seconds(start_second,end_second):
+        video_path=check_file_and_return_path()
+        if video_path:
+            cap = cv2.VideoCapture(video_path)
+            frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            fps=cap.get(cv2.CAP_PROP_FPS)
+            cap.release()
+            if check_margin(top_margin,bottom_margin,left_margin,right_margin):
+                if(frame_cont/int(fps)<=int(end_second)):
+                    messagebox.showerror(title="出错了！", message="结束秒数必须小于视频长度")  
+                else:
+                    if int(fps)!=fps:  #warning only not error
+                        messagebox.showinfo(title="注意", message="视频帧数为非整数，可能会有剪辑问题，推荐使用其他软件重新导出为整数帧文件，点击确定或关闭窗口以继续")
+                    if(mode=="懒人模式（保留有效暂停）" or mode=="懒人模式（暂停全剪）"):
+                        lazy_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second)
+                        print("已完成，请在working_folder下查看out.mp4文件")
+                    else:  #normal mode otherwise
+                        normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second)
+                        print("已完成，请在working_folder下查看分离的mp4文件")
 
-def b13cb(event):
+def jump_to_tutorial(event):
     webbrowser.open("https://www.bilibili.com/video/BV1qg411r7dV", new=0)
 
-l3=Label(win, text="懒人模式将会自动剪掉暂停\n并且加速1倍速的部分为2倍速",font=20,height=3,width=30)
-l3_2=Label(win, text="适用于无需保留音效",font=20,width=30)
-l3_3=Label(win, text="此模式只会生成1个文件",font=20)
-l4=Label(win, text="正常模式将会自动分离暂停部分\n并且保留音效",font=20,height=3,width=30)
-l4_2=Label(win, text="适用于需要保留音效\n（注：正常模式不支持mkv格式）",font=20,width=30)
-l4_3=Label(win, text="此模式会生成较多文件",font=20)
-        
-l1=Label(win, text="当前工作目录",font=20,height=3)
-l1_1=Label(win, text=dir+"\working_folder", bg="lightgrey",font=20,height=3)
 
-l2=Label(win, text="选择模式",font=20,height=3)
-e2=ttk.Combobox(win,font=20,height=4,width=28)
-e2['value']=("正常模式（仅保留无效暂停音效）","正常模式（保留无效暂停视频）","懒人模式（保留有效暂停）","懒人模式（暂停全剪）")
-win.option_add('*TCombobox*Listbox.font',20)
-e2.current(0)
-b2=Button(win, textvariable=var2, command=b2cb,font=20)
-
-l5=Label(win, text="上边距（像素数）",font=20,height=2)
-e5=Entry(win, text="1", bg="white",font=20)
-        
-l6=Label(win, text="下边距",font=20,height=2)
-e6=Entry(win, text="2", bg="white",font=20)
-
-l7=Label(win, text="左边距",font=20,height=2)
-e7=Entry(win, text="3", bg="white",font=20)
-
-l8=Label(win, text="右边距",font=20,height=2)
-e8=Entry(win, text="4", bg="white",font=20)
-
-b9=Button(win, text="保存设置", command=b11cb,font=20)
-
-
-l14=Label(win, text="检测边距秒数",font=20,height=2)
-e14=Entry(win, text="7", bg="white",font=20)
-
-
-b15=Button(win, text="检测边距", command=b15cb,font=20)
-b16=Button(win, text="按边距裁剪（边距将被重置为0）", command=b16cb,font=20)
-
-
-
-l10=Label(win, text="开始秒数",font=20,height=2)
-e10=Entry(win, text="5", bg="white",font=20)
-
-l11=Label(win, text="结束秒数",font=20,height=2)
-e11=Entry(win, text="6", bg="white",font=20)
-
-
-
-b12=Button(win, text="点击开始自动分离/剪掉暂停（不包含边距裁剪）", command=b11_2cb,font=20)
-b17=Button(win, text="点击开始自动分离/剪掉暂停（包含边距裁剪）", command=b17cb,font=20)
-
-l13_1=Label(win, text="详细操作教程：",font=20,height=2)
-
-ft = tkFont.Font(family = 'Fixdsys',size = 11,weight = tkFont.NORMAL, underline=1)  
-l13_2=Label(win, text="www.bilibili.com/video/BV1qg411r7dV",font=ft,fg="blue",height=2)
-l13_2.bind("<ButtonPress-1>", b13cb)  
-
-#b13=Button(win, text="详细操作流程：absdasdfasdf", command=b13cb,font=20)
-
-#l13=Label(win, textvariable=var3,font=20,height=2)
-
-l1.grid(row=0)
-l1_1.grid(row=0,column=1)
-l2.grid(row=1)
-e2.grid(row=1,column=1)
-b2.grid(row=1,column=2)
-
-l5.grid(row=4)
-e5.grid(row=4,column=1)
-l6.grid(row=5)
-e6.grid(row=5,column=1)
-l7.grid(row=6)
-e7.grid(row=6,column=1)
-l8.grid(row=7)
-e8.grid(row=7,column=1)
-
-b9.grid(row=8)
-
-l14.grid(row=9)
-e14.grid(row=9,column=1)
-b15.grid(row=10)
-b16.grid(row=10,column=1)
-
-l10.grid(row=11)
-e10.grid(row=11,column=1)
-l11.grid(row=12)
-e11.grid(row=12,column=1)
-
-b12.grid(row=13,column=0)
-b17.grid(row=13,column=1)
-l13_1.grid(row=14,column=0)
-l13_2.grid(row=14,column=1)
-#l13.grid(row=12,column=1)
-
-   
-os.environ["Path"] += os.pathsep + dir + "\\bin"
-
-if(os.path.exists(dir+"\\设置.txt")):
-    f = open(dir+"\\设置.txt")
-    e5.insert(0,int(f.readline()))
-    e6.insert(0,int(f.readline()))
-    e7.insert(0,int(f.readline()))
-    e8.insert(0,int(f.readline()))
-    f.close()
-
-
-def lazy_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):  
-    path=os.getcwd()
-    working_path=path+"/working_folder/"
-
+def lazy_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second):  
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    cap = cv2.VideoCapture("./working_folder/"+os.listdir(working_path)[0])
-    full_path = "./working_folder/"+os.listdir(working_path)[0]
+    cap = cv2.VideoCapture(video_path)
 
     #settings
     frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
     lgt=cap.get(cv2.CAP_PROP_FRAME_WIDTH)       #length
     hgt=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)    #height
     
-    top_m=int(arg1)    
-    bot_m=int(arg2)
-    lft_m=int(arg3)  
-    rgt_m=int(arg4)
+    top_m=int(top_margin)    
+    bot_m=int(bottom_margin)
+    lft_m=int(left_margin)  
+    rgt_m=int(right_margin)
     
     act_hgt=int(round(hgt-top_m-bot_m,0))
     
@@ -438,8 +285,8 @@ def lazy_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
         mdf_hgt=act_hgt
     
     fps=int(cap.get(cv2.CAP_PROP_FPS))       #
-    start_f=int(arg5)*fps#start frame (will keep frames before this)
-    end_f=int(arg6)*fps  #end frame   (will keep frames after this)
+    start_f=int(start_second)*fps#start frame (will keep frames before this)
+    end_f=int(end_second)*fps  #end frame   (will keep frames after this)
 
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     out = cv2.VideoWriter('./working_folder/out.mp4', fourcc, fps, size)
@@ -511,7 +358,7 @@ def lazy_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
     vp_y_n=np.arange(0,frame_cont)
     
     keep_frame_y_n=np.ones(int(frame_cont))  #0 means keep, 1 means no keep
-    if arg7=="懒人模式（保留有效暂停）":
+    if mode=="懒人模式（保留有效暂停）":
         while(c<frame_cont):     
             # get a frame
             ret, frame = cap.read()   
@@ -593,7 +440,7 @@ def lazy_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
                     keep_frame_y_n[a]=0
                     a=a+1
             c=c+1
-        cap = cv2.VideoCapture(full_path)
+        cap = cv2.VideoCapture(video_path)
         c=0
         while(c<frame_cont):     
             # get a frame
@@ -623,7 +470,7 @@ def lazy_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
             elif(c==end_f):
                 print("100%，正在复制结束秒数之后的片段请稍后")
             c=c+1
-    elif arg7=="懒人模式（暂停全剪）":        
+    elif mode=="懒人模式（暂停全剪）":        
         while(c<frame_cont):     
             # get a frame
             ret, frame = cap.read()   
@@ -680,24 +527,20 @@ def lazy_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
     cap.release()
     cv2.destroyAllWindows()
 
-def normal_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7): 
-
-    path=os.getcwd()
-    working_path=path+"/working_folder/"
+def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second): 
 
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    cap = cv2.VideoCapture("./working_folder/"+os.listdir(working_path)[0])
-    full_path = "./working_folder/"+os.listdir(working_path)[0]
+    cap = cv2.VideoCapture(video_path)
     
     #settings
     frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
     lgt=cap.get(cv2.CAP_PROP_FRAME_WIDTH)       #length
     hgt=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)    #height
     
-    top_m=int(arg1)    
-    bot_m=int(arg2)
-    lft_m=int(arg3)  
-    rgt_m=int(arg4)
+    top_m=int(top_margin)    
+    bot_m=int(bottom_margin)
+    lft_m=int(left_margin)  
+    rgt_m=int(right_margin)
     
     act_hgt=int(round(hgt-top_m-bot_m,0))
     
@@ -709,8 +552,8 @@ def normal_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
         mdf_hgt=act_hgt
         
     fps=int(cap.get(cv2.CAP_PROP_FPS))       #
-    start_f=int(arg5)*fps#start frame (will keep frames before this)
-    end_f=int(arg6)*fps  #end frame   (will keep frames after this)
+    start_f=int(start_second)*fps#start frame (will keep frames before this)
+    end_f=int(end_second)*fps  #end frame   (will keep frames after this)
 
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
@@ -899,11 +742,10 @@ def normal_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
     
     
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    cap = cv2.VideoCapture("./working_folder/"+os.listdir(working_path)[0])
-    full_path = "./working_folder/"+os.listdir(working_path)[0]
+    cap = cv2.VideoCapture(video_path)
     sound_ind = 1
     try:
-        sound = AudioSegment.from_file(full_path, format=os.path.splitext(full_path)[-1].split(".")[1])    
+        sound = AudioSegment.from_file(video_path, format=os.path.splitext(video_path)[-1].split(".")[1])    
     except:
         sound_ind = 0
     #print("sound_ind is ", sound_ind)
@@ -1063,7 +905,7 @@ def normal_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
         if(sound_ind):
             subprocess.call('ffmpeg -loglevel ''quiet'' -i '+file_dir+"out_"+str(i)+".mp4"+' -i '+file_dir+"out_"+str(i)+".mp3"+' -c:v copy -c:a aac '+file_dir+str(j)+".mp4",shell = True)
             subprocess.call('ffmpeg -loglevel ''quiet'' -i '+file_dir+"out_"+str(i)+"有效暂停.mp4"+' -i '+file_dir+"out_"+str(i)+"有效暂停.mp3"+' -c:v copy -c:a aac '+file_dir+str(j)+"有效暂停.mp4",shell = True)
-            if(arg7=="正常模式（保留无效暂停视频）"):
+            if(mode=="正常模式（保留无效暂停视频）"):
                 subprocess.call('ffmpeg -loglevel ''quiet'' -i '+file_dir+"out_"+str(i)+"无效暂停.mp4"+' -i '+file_dir+"out_"+str(i)+"无效暂停.mp3"+' -c:v copy -c:a aac '+file_dir+str(j)+"无效暂停.mp4",shell = True)
             else:    
                 try:
@@ -1102,7 +944,7 @@ def normal_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
                 os.rename(file_dir+"out_"+str(i)+"有效暂停.mp4",file_dir+str(j)+"有效暂停.mp4")
             except:
                 dummy=0   
-            if(arg7=="正常模式（保留无效暂停视频）"):
+            if(mode=="正常模式（保留无效暂停视频）"):
                 try:
                     os.rename(file_dir+"out_"+str(i)+"无效暂停.mp4",file_dir+str(j)+"无效暂停.mp4")
                 except:
@@ -1131,11 +973,103 @@ def normal_version(arg1,arg2,arg3,arg4,arg5,arg6,arg7):
                 print("100%，重命名完成")
             i=i+1
     if(sound_ind):       
-        for root , dirs, files in os.walk(dir+"\working_folder"):
+        for root , dirs, files in os.walk(working_path):
             for name in files:
                 if name.startswith("out"):
                     os.remove(os.path.join(root, name))   
 
+# main here
 
+# 创建窗口
+win = Tk()
+# 设置窗口标题
+win.title('明日方舟自动分离/剪掉暂停')
+
+# 设置窗口宽度和高度
+win.geometry(str(1100+len(path.encode('utf-8'))*5)+'x850')  
+    
+l_text_working_path=Label(win, text="当前工作目录",font=20,height=3)
+l_working_path=Label(win, text=working_path, bg="lightgrey",font=20,height=3)
+
+l_mode=Label(win, text="选择模式",font=20,height=3)
+e_mode=ttk.Combobox(win,font=20,height=4,width=28)
+e_mode['value']=("正常模式（仅保留无效暂停音效）","正常模式（保留无效暂停视频）","懒人模式（保留有效暂停）","懒人模式（暂停全剪）")
+win.option_add('*TCombobox*Listbox.font',20)
+e_mode.current(0) #give default
+b_show_desc=Button(win, text="显示说明", command=show_desc,font=20)
+
+l_top_margin=Label(win, text="上边距（像素数）",font=20,height=2)
+e_top_margin=Entry(win, bg="white",font=20)
+        
+l_bottom_margin=Label(win, text="下边距",font=20,height=2)
+e_bottom_margin=Entry(win, bg="white",font=20) 
+
+l_left_margin=Label(win, text="左边距",font=20,height=2)
+e_left_margin=Entry(win, bg="white",font=20)
+
+l_right_margin=Label(win, text="右边距",font=20,height=2)
+e_right_margin=Entry(win, bg="white",font=20)
+
+b_save_settings=Button(win, text="保存设置", command=lambda: save_settings(e_mode.current(),e_top_margin.get(),e_bottom_margin.get(),e_left_margin.get(),e_right_margin.get()), font=20)
+
+l_measure_margin_second=Label(win, text="检测边距秒数",font=20,height=2)
+e_measure_margin_second=Entry(win, bg="white",font=20)
+
+b_measure_margin=Button(win, text="检测边距", command=lambda: measure_margin(e_measure_margin_second.get()),font=20)
+b_crop=Button(win, text="按边距裁剪（边距将被重置为0）", command=lambda: crop(e_top_margin.get(),e_bottom_margin.get(),e_left_margin.get(),e_right_margin.get()),font=20)
+
+l_start_second=Label(win, text="开始秒数",font=20,height=2)
+e_start_second=Entry(win, bg="white",font=20)
+
+l_end_second=Label(win, text="结束秒数",font=20,height=2)
+e_end_second=Entry(win, bg="white",font=20)
+
+b_cut_without_crop=Button(win, text="点击开始自动分离/剪掉暂停（不包含边距裁剪）", command=lambda: cut_without_crop(e_mode.get(),e_top_margin.get(),e_bottom_margin.get(),e_left_margin.get(),e_right_margin.get(),e_start_second.get(),e_end_second.get()),font=20)
+b_cut_with_crop=Button(win, text="点击开始自动分离/剪掉暂停（包含边距裁剪）", command=lambda: cut_with_crop(e_start_second.get(),e_end_second.get(),e_measure_margin_second.get()),font=20)
+
+l_tutorial=Label(win, text="详细操作教程：",font=20,height=2)
+
+ft = tkFont.Font(family = 'Fixdsys',size = 11,weight = tkFont.NORMAL, underline=1)  
+l_tutorial_url=Label(win, text="www.bilibili.com/video/BV1qg411r7dV",font=ft,fg="blue",height=2)
+l_tutorial_url.bind("<ButtonPress-1>", jump_to_tutorial)  
+
+l_text_working_path.grid(row=0)
+l_working_path.grid(row=0,column=1)
+l_mode.grid(row=1)
+e_mode.grid(row=1,column=1)
+b_show_desc.grid(row=1,column=2)
+
+l_top_margin.grid(row=4)
+e_top_margin.grid(row=4,column=1)
+l_bottom_margin.grid(row=5)
+e_bottom_margin.grid(row=5,column=1)
+l_left_margin.grid(row=6)
+e_left_margin.grid(row=6,column=1)
+l_right_margin.grid(row=7)
+e_right_margin.grid(row=7,column=1)
+
+b_save_settings.grid(row=8)
+
+l_measure_margin_second.grid(row=9)
+e_measure_margin_second.grid(row=9,column=1)
+b_measure_margin.grid(row=10)
+b_crop.grid(row=10,column=1)
+
+l_start_second.grid(row=11)
+e_start_second.grid(row=11,column=1)
+l_end_second.grid(row=12)
+e_end_second.grid(row=12,column=1)
+
+b_cut_without_crop.grid(row=13,column=0)
+b_cut_with_crop.grid(row=13,column=1)
+l_tutorial_url.grid(row=14,column=0)
+l_tutorial_url.grid(row=14,column=1)       
+
+if os.path.exists(path+"/设置.txt"):
+    f = open(path+"/设置.txt")
+    e_mode.current(int(f.readline()))
+    set_margin(int(f.readline()),int(f.readline()),int(f.readline()),int(f.readline()))
+    f.close()  
+    
 # 主循环
 win.mainloop()
