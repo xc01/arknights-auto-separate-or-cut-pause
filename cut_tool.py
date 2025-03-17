@@ -15,6 +15,39 @@ import math
 path = os.getcwd()
 working_path = path + "\\working_folder\\"
 
+#constants
+P_M_Y_CO=0.074             #(right top) pause middle coefficient
+P_M_X_CO=0.112
+P_L_X_CO=0.125
+M_P_M_Y_2_CO=0.5           #this is the black point, other 3 are white point 
+M_P_M_X_2_CO=0.5           
+M_P_L_Y_CO=0.007           #middle pause
+M_P_L_X_CO=0.19
+M_P_M_Y_CO=0.043
+M_P_R_Y_CO=0.023
+M_P_R_X_CO=0.149
+
+ACC_L_Y_CO=0.095           #accelerate for lazy only
+ACC_L_X_CO=0.262
+ACC_R_X_CO=0.247
+
+VP_Y_CO=0.5       #valid pause
+VP_X_1_CO=0.046
+VP_X_2_CO=0.093
+VP_X_3_CO=0.139
+VP_X_4_CO=0.185
+
+VP_2_Y_CO=0.389   #second option to check valid pause
+VP_2_X_1_CO=0.188 #wendi
+VP_2_X_2_CO=0.197 #niaolong(mozu)
+VP_2_X_3_CO=0.206 #m3
+VP_2_X_4_CO=0.217 #panxie
+
+
+#vp_3_y_co=0.669   #third option to check valid pause (just before click skill)
+#vp_3_x_1_co=0.121 #from middle point (white)
+#vp_3_x_2_co=0.140 #(green)
+    
 def check_margin(top_margin,bottom_margin,left_margin,right_margin):
     if not(top_margin.replace('-','').isdigit() and bottom_margin.replace('-','').isdigit() and left_margin.replace('-','').isdigit() and right_margin.replace('-','').isdigit()):
         messagebox.showerror(title="出错了！", message="边距参数有误（需整数）")
@@ -54,7 +87,7 @@ def check_file_and_return_path():
         if working_folder_list[0].startswith("out"):
             messagebox.showerror(title="出错了！", message="文件名不得以out开头，请重命名") 
             return False
-        return working_path + os.listdir(working_path)[0]            
+        return working_path + working_folder_list[0]            
     messagebox.showerror(title="出错了！", message="工作目录下文件数必须为1")
     return False
       
@@ -83,7 +116,7 @@ def measure_margin(measure_margin_second):
         video_path=check_file_and_return_path()
         if video_path:   
             cap = cv2.VideoCapture(video_path)
-            frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            frame_cnt=cap.get(cv2.CAP_PROP_FRAME_COUNT)
             fps=cap.get(cv2.CAP_PROP_FPS)
             lgt=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))       #length
             hgt=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))    #height
@@ -92,10 +125,10 @@ def measure_margin(measure_margin_second):
             bot_lft_x=0
             bot_lft_y=0
             
-            c = 0
-            while c < int(fps)*float(measure_margin_second):
+            i = 0
+            while i < int(fps)*float(measure_margin_second):
                 ret, frame = cap.read()   
-                c=c+1
+                i=i+1
             x=lgt-1
             flag=False
             while x >= 0:
@@ -105,7 +138,7 @@ def measure_margin(measure_margin_second):
                         #print('here!')
                         top_rgt_x=x
                         top_rgt_y=y
-                        rgt_m=lgt-1-x
+                        right_margin=lgt-1-x
                         y=y+1                        
                         #print('aaa frame[y,x] is ', y, x, frame[y,x])
                         while(not(frame[y,x][2]>=100 and frame[y,x][0]>= 100 and frame[y,x][1]>= 100)) and y<=hgt-2:
@@ -130,7 +163,7 @@ def measure_margin(measure_margin_second):
                 x=x-1
             
             y=hgt-1
-            bot_m = 1000 #default too big num
+            bottom_margin = 1000 #default too big num
             while y >=0:
                 x=0
                 blue_cnt=0
@@ -139,12 +172,12 @@ def measure_margin(measure_margin_second):
                         blue_cnt=blue_cnt+1                        
                     x=x+1
                 if blue_cnt/lgt < 0.25 and blue_cnt/lgt > 0.1:
-                    bot_m=hgt-y-1
+                    bottom_margin=hgt-y-1
                     break
                 y=y-1
             
             x=0
-            lft_m = 1000 #default too big num
+            left_margin = 1000 #default too big num
             while x<=lgt-1:
                 y=0
                 light_grey_cnt=0
@@ -156,7 +189,7 @@ def measure_margin(measure_margin_second):
                     y=y+1
                 if light_grey_cnt/hgt < 0.25 and light_grey_cnt/hgt > 0.1:
                     #print('light_grey_cnt/x is ', light_grey_cnt,x)
-                    lft_m=x
+                    left_margin=x
                     break
                 x=x+1
                 
@@ -169,13 +202,13 @@ def measure_margin(measure_margin_second):
                 return False
             else:
                 #print('top_rgt_x is ', top_rgt_x)
-                rgt_m=lgt-1-top_rgt_x
-                top_m=math.floor(top_rgt_y-2-1/3*(bot_lft_y+1-top_rgt_y+2)) 
-                #print(top_m,bot_m,lft_m,rgt_m)
-                if(top_m>500 or bot_m>500 or lft_m>500 or rgt_m>500):
+                right_margin=lgt-1-top_rgt_x
+                top_margin=math.floor(top_rgt_y-2-1/3*(bot_lft_y+1-top_rgt_y+2)) 
+                #print(top_margin,bottom_margin,left_margin,right_margin)
+                if(top_margin>500 or bottom_margin>500 or left_margin>500 or right_margin>500):
                     messagebox.showerror(title="出错了！", message="计算有误，请重新输入正确的检测边距秒数（显示编队的帧）")
                     return False                   
-                set_margin(top_m,bot_m,lft_m,rgt_m)
+                set_margin(top_margin,bottom_margin,left_margin,right_margin)
                 messagebox.showinfo(title="消息", message="边距已填充")
                 return True
             cap.release()
@@ -241,514 +274,308 @@ def cut_without_crop(mode,top_margin,bottom_margin,left_margin,right_margin,star
         video_path=check_file_and_return_path()
         if video_path:
             cap = cv2.VideoCapture(video_path)
-            frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            frame_cnt=cap.get(cv2.CAP_PROP_FRAME_COUNT)
             fps=cap.get(cv2.CAP_PROP_FPS)
             cap.release()
             if check_margin(top_margin,bottom_margin,left_margin,right_margin):
-                if(frame_cont/int(fps)<=int(end_second)):
+                if(frame_cnt/int(fps)<=int(end_second)):
                     messagebox.showerror(title="出错了！", message="结束秒数必须小于视频长度")  
                 else:
                     if int(fps)!=fps:  #warning only not error
                         messagebox.showinfo(title="注意", message="视频帧数为非整数，可能会有剪辑问题，推荐使用其他软件重新导出为整数帧文件，点击确定或关闭窗口以继续")
                     if(mode=="懒人模式（保留有效暂停）" or mode=="懒人模式（暂停全剪）"):
-                        lazy_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second)
+                        lazy_version(video_path,mode,int(top_margin),int(bottom_margin),int(left_margin),int(right_margin),
+                            int(start_second),int(end_second))
+                        #already know these variables are int, thus cast here instead of inside
                         print("已完成，请在working_folder下查看out.mp4文件")
                     else:  #normal mode otherwise
-                        normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second)
+                        normal_version(video_path,mode,int(top_margin),int(bottom_margin),int(left_margin),int(right_margin),
+                            int(start_second),int(end_second))
                         print("已完成，请在working_folder下查看分离的mp4文件")
 
 def jump_to_tutorial(event):
     webbrowser.open("https://www.bilibili.com/video/BV1qg411r7dV", new=0)
 
+class PointCoordinates:
+    def __init__(self):
+        self.p_m_y,self.p_m_x=0,0
+        self.p_l_y,self.p_l_x=0,0
+        self.m_p_m_y_2,self.m_p_m_x_2=0,0
+
+        self.m_p_l_y,self.m_p_l_x=0,0 
+        self.m_p_m_y,self.m_p_m_x=0,0
+        self.m_p_r_y,self.m_p_r_x=0,0
+        
+        self.acc_l_y,self.acc_l_x=0,0
+        self.acc_r_y,self.acc_r_x=0,0
+        
+        self.vp_y,self.vp_x_1,self.vp_x_2,self.vp_x_3,self.vp_x_4=0,0,0,0,0        
+        self.vp_2_y,self.vp_2_x_1,self.vp_2_x_2,self.vp_2_x_3,self.vp_2_x_4=0,0,0,0,0
+        
+    def calculate_coordinates(self,lgt,hgt,top_margin,bottom_margin,left_margin,right_margin):        
+        act_hgt=int(round(hgt-top_margin-bottom_margin,0))        
+        act_lgt=int(round(lgt-left_margin-right_margin,0))
+            
+        if act_lgt*1080<act_hgt*1920:
+            mdf_hgt=int(round(act_lgt/1920*1080,0))
+        else:
+            mdf_hgt=act_hgt    
+    
+        self.p_m_y=int(round(P_M_Y_CO*mdf_hgt+top_margin,0))
+        self.p_m_x=int(round(lgt-P_M_X_CO*mdf_hgt-right_margin,0)) #right top || middle
+        self.p_l_y=self.p_m_y
+        self.p_l_x=int(round(lgt-P_L_X_CO*mdf_hgt-right_margin,0)) #right top || left
+
+        self.m_p_m_y_2=int(round(M_P_M_Y_2_CO*act_hgt+top_margin,0))
+        self.m_p_m_x_2=int(round(M_P_M_X_2_CO*(lgt-left_margin-right_margin)+left_margin,0)) #middle PAUSE point (black point)
+
+        self.m_p_l_y=int(round(self.m_p_m_y_2+M_P_L_Y_CO*mdf_hgt,0)) 
+        self.m_p_l_x=int(round(self.m_p_m_x_2-M_P_L_X_CO*mdf_hgt,0)) #middle PAUSE left point (white point)  
+        self.m_p_m_y=int(round(self.m_p_m_y_2+M_P_M_Y_CO*mdf_hgt,0))
+        self.m_p_m_x=self.m_p_m_x_2                                  #middle PAUSE middle point (white point)
+        self.m_p_r_y=int(round(self.m_p_m_y_2-M_P_R_Y_CO*mdf_hgt,0))  
+        self.m_p_r_x=int(round(self.m_p_m_x_2+M_P_R_X_CO*mdf_hgt,0)) #middle PAUSE right point (white point)
+
+        self.acc_l_y=int(round(ACC_L_Y_CO*mdf_hgt+top_margin,0))
+        self.acc_l_x=int(round(lgt-ACC_L_X_CO*mdf_hgt-right_margin,0))
+        self.acc_r_y=self.acc_l_y
+        self.acc_r_x=int(round(lgt-ACC_R_X_CO*mdf_hgt-right_margin,0))
+        
+        self.vp_y=int(round(VP_Y_CO*act_hgt+top_margin,0))
+        self.vp_x_1=int(round(VP_X_1_CO*mdf_hgt+left_margin,0))
+        self.vp_x_2=int(round(VP_X_2_CO*mdf_hgt+left_margin,0))
+        self.vp_x_3=int(round(VP_X_3_CO*mdf_hgt+left_margin,0))
+        self.vp_x_4=int(round(VP_X_4_CO*mdf_hgt+left_margin,0))
+        
+        self.vp_2_y=int(round(VP_Y_CO*act_hgt+top_margin - (VP_Y_CO-VP_2_Y_CO)*mdf_hgt,0))
+        self.vp_2_x_1=int(round(VP_2_X_1_CO*mdf_hgt+left_margin,0))
+        self.vp_2_x_2=int(round(VP_2_X_2_CO*mdf_hgt+left_margin,0))
+        self.vp_2_x_3=int(round(VP_2_X_3_CO*mdf_hgt+left_margin,0))
+        self.vp_2_x_4=int(round(VP_2_X_4_CO*mdf_hgt+left_margin,0))
+  
+        #print(p_m_y, p_m_x, m_p_m_y_2, m_p_m_x_2, m_p_l_y, m_p_l_x, acc_l_y, acc_l_x, acc_r_y, acc_r_x)
+
+def is_pause(frame,p_m_y,p_m_x,p_l_y,p_l_x,m_p_m_y_2,m_p_m_x_2,m_p_l_y,m_p_l_x,m_p_m_y,m_p_m_x,m_p_r_y,m_p_r_x):
+    if abs(float(sum(frame[p_l_y,p_l_x])/len(frame[p_l_y,p_l_x]))-float(sum(frame[p_m_y,p_m_x])/len(frame[p_m_y,p_m_x]))) < 10: #TODO 10 could be CONSTANT threshold
+        return True
+    if all(frame[m_p_l_y,m_p_l_x] > np.array([240,240,240]))\
+            and all(frame[m_p_m_y,m_p_m_x] > np.array([240,240,240]))\
+            and all(frame[m_p_r_y,m_p_r_x] > np.array([240,240,240])):   # check if the three points in middle PAUSE word are all white
+        return True
+    if all(frame[m_p_m_y,m_p_m_x] > np.array([128,128,128])) \
+            and abs(int(frame[m_p_m_y,m_p_m_x][0])-int(frame[m_p_l_y,m_p_l_x][0])) < 30 \
+            and abs(int(frame[m_p_m_y,m_p_m_x][1])-int(frame[m_p_l_y,m_p_l_x][1])) < 30 \
+            and abs(int(frame[m_p_m_y,m_p_m_x][2])-int(frame[m_p_l_y,m_p_l_x][2])) < 30 \
+            and abs(int(frame[m_p_m_y,m_p_m_x][0])-int(frame[m_p_r_y,m_p_r_x][0])) < 30 \
+            and abs(int(frame[m_p_m_y,m_p_m_x][1])-int(frame[m_p_r_y,m_p_r_x][1])) < 30 \
+            and abs(int(frame[m_p_m_y,m_p_m_x][2])-int(frame[m_p_r_y,m_p_r_x][2])) < 30 \
+            and abs(int(frame[m_p_l_y,m_p_l_x][0])-int(frame[m_p_r_y,m_p_r_x][0])) < 30 \
+            and abs(int(frame[m_p_l_y,m_p_l_x][1])-int(frame[m_p_r_y,m_p_r_x][1])) < 30 \
+            and abs(int(frame[m_p_l_y,m_p_l_x][2])-int(frame[m_p_r_y,m_p_r_x][2])) < 30 \
+            and all(frame[m_p_m_y_2,m_p_m_x_2] < np.array([128,128,128])):
+        return True
+    return False
+
+def is_acceleration(frame,acc_l_y,acc_l_x,acc_r_y,acc_r_x):
+    if all(frame[acc_r_y,acc_r_x] > np.array([200,200,200])) and \
+            any(frame[acc_l_y,acc_l_x] < np.array([200,200,200])):
+        return False
+    return True
+
+def is_valid_pause(frame,vp_y,vp_x_1,vp_x_2,vp_x_3,vp_x_4,vp_2_y,vp_2_x_1,vp_2_x_2,vp_2_x_3,vp_2_x_4):
+    if all(frame[vp_y-5,vp_x_1] < np.array([30,30,30])):
+        if (55<=frame[vp_y,vp_x_1][0]<=130 and 55<=frame[vp_y,vp_x_1][1]<=130 and 55<=frame[vp_y,vp_x_1][2]<=130)\
+                and (55<=frame[vp_y,vp_x_2][0]<=130 and 55<=frame[vp_y,vp_x_2][1]<=130 and 55<=frame[vp_y,vp_x_2][2]<=130)\
+                and (55<=frame[vp_y,vp_x_3][0]<=130 and 55<=frame[vp_y,vp_x_3][1]<=130 and 55<=frame[vp_y,vp_x_3][2]<=130)\
+                and (55<=frame[vp_y,vp_x_4][0]<=130 and 55<=frame[vp_y,vp_x_4][1]<=130 and 55<=frame[vp_y,vp_x_4][2]<=130):
+           return True
+        if (55<=frame[vp_y-1,vp_x_1][0]<=130 and 55<=frame[vp_y-1,vp_x_1][1]<=130 and 55<=frame[vp_y-1,vp_x_1][2]<=130)\
+                and (55<=frame[vp_y-1,vp_x_2][0]<=130 and 55<=frame[vp_y-1,vp_x_2][1]<=130 and 55<=frame[vp_y-1,vp_x_2][2]<=130)\
+                and (55<=frame[vp_y-1,vp_x_3][0]<=130 and 55<=frame[vp_y-1,vp_x_3][1]<=130 and 55<=frame[vp_y-1,vp_x_3][2]<=130)\
+                and (55<=frame[vp_y-1,vp_x_4][0]<=130 and 55<=frame[vp_y-1,vp_x_4][1]<=130 and 55<=frame[vp_y-1,vp_x_4][2]<=130):
+            return True
+        if (55<=frame[vp_y+1,vp_x_1][0]<=130 and 55<=frame[vp_y+1,vp_x_1][1]<=130 and 55<=frame[vp_y+1,vp_x_1][2]<=130)\
+                and (55<=frame[vp_y+1,vp_x_2][0]<=130 and 55<=frame[vp_y+1,vp_x_2][1]<=130 and 55<=frame[vp_y+1,vp_x_2][2]<=130)\
+                and (55<=frame[vp_y+1,vp_x_3][0]<=130 and 55<=frame[vp_y+1,vp_x_3][1]<=130 and 55<=frame[vp_y+1,vp_x_3][2]<=130)\
+                and (55<=frame[vp_y+1,vp_x_4][0]<=130 and 55<=frame[vp_y+1,vp_x_4][1]<=130 and 55<=frame[vp_y+1,vp_x_4][2]<=130):
+            return True
+    if all(frame[vp_2_y,vp_2_x_1] > np.array([240,240,240])):
+        return True
+    if all(frame[vp_2_y,vp_2_x_2] > np.array([240,240,240])):
+        return True
+    if all(frame[vp_2_y,vp_2_x_3] > np.array([240,240,240])):
+        return True
+    if all(frame[vp_2_y,vp_2_x_4] > np.array([240,240,240])):
+        return True
+    return False
+
+def print_progress(i,start,end,start_message,end_message):
+    if i==start:
+        print(start_message)
+    elif i==end:
+        print(end_message)
+    elif (i-start)%((end-start)/10)<1 and i>start and i<end:
+        print(str(int((i-start)/((end-start)/10)))+"0%")
 
 def lazy_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second):  
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     cap = cv2.VideoCapture(video_path)
 
     #settings
-    frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    lgt=cap.get(cv2.CAP_PROP_FRAME_WIDTH)       #length
-    hgt=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)    #height
-    
-    top_m=int(top_margin)    
-    bot_m=int(bottom_margin)
-    lft_m=int(left_margin)  
-    rgt_m=int(right_margin)
-    
-    act_hgt=int(round(hgt-top_m-bot_m,0))
-    
-    act_lgt=int(round(lgt-lft_m-rgt_m,0))
-    
-    if act_lgt*1080<act_hgt*1920:
-        mdf_hgt=int(round(act_lgt/1920*1080,0))
-    else:
-        mdf_hgt=act_hgt
+    frame_cnt=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    lgt=cap.get(cv2.CAP_PROP_FRAME_WIDTH)      
+    hgt=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)   
     
     fps=int(cap.get(cv2.CAP_PROP_FPS))       #
-    start_f=int(start_second)*fps#start frame (will keep frames before this)
-    end_f=int(end_second)*fps  #end frame   (will keep frames after this)
+    start_f=start_second*fps #start frame (will keep frames before this)
+    end_f=end_second*fps  #end frame   (will keep frames after this)
 
-    size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    size = (int(lgt),int(hgt))  # requires both int
     out = cv2.VideoWriter('./working_folder/out.mp4', fourcc, fps, size)
+    
+    pc = PointCoordinates()
+    pc.calculate_coordinates(lgt,hgt,top_margin,bottom_margin,left_margin,right_margin);        
 
-    p_m_y_co=0.074             #(right top) pause middle coefficient
-    p_m_x_co=0.112
-    p_l_x_co=0.125
-    m_p_m_y_2_co=0.5           #this is the black point, other 3 are white point 
-    m_p_m_x_2_co=0.5           
-    m_p_l_y_co=0.007           #middle PAUSE
-    m_p_l_x_co=0.19
-    m_p_m_y_co=0.043
-    m_p_r_y_co=0.023
-    m_p_r_x_co=0.149
-    acc_l_y_co=0.095           #accelerate
-    acc_l_x_co=0.262
-    acc_r_x_co=0.247
+    skip=True
+    pause_y_n=np.ones(frame_cnt)  #0 means a pause, 1 means not a pause
+    vp_y_n=np.ones(frame_cnt)    
+    keep_frame_y_n=np.ones(frame_cnt)  #0 means keep, 1 means no keep
     
-    vp_y_co=0.5       #valid pause
-    vp_x_1_co=0.046
-    vp_x_2_co=0.093
-    vp_x_3_co=0.139
-    vp_x_4_co=0.185
-    
-    vp_2_y_co=0.389   #second option to check valid pause
-    vp_2_x_1_co=0.188 #wendi
-    vp_2_x_2_co=0.197 #niaolong(mozu)
-    vp_2_x_3_co=0.206 #m3
-    vp_2_x_4_co=0.217 #panxie
-    
-    
-    p_m_y=int(round(p_m_y_co*mdf_hgt+top_m,0))
-    p_m_x=int(round(lgt-p_m_x_co*mdf_hgt-rgt_m,0))
-    p_l_y=p_m_y
-    p_l_x=int(round(lgt-p_l_x_co*mdf_hgt-rgt_m,0))
-
-    m_p_m_y_2=int(round(m_p_m_y_2_co*act_hgt+top_m,0))
-    m_p_m_x_2=int(round(m_p_m_x_2_co*(lgt-lft_m-rgt_m)+lft_m,0))
-
-    m_p_l_y=int(round(m_p_m_y_2+m_p_l_y_co*mdf_hgt,0))   
-    m_p_l_x=int(round(m_p_m_x_2-m_p_l_x_co*mdf_hgt,0))   
-    m_p_m_y=int(round(m_p_m_y_2+m_p_m_y_co*mdf_hgt,0))
-    m_p_m_x=m_p_m_x_2
-    m_p_r_y=int(round(m_p_m_y_2-m_p_r_y_co*mdf_hgt,0))  
-    m_p_r_x=int(round(m_p_m_x_2+m_p_r_x_co*mdf_hgt,0))  
-
-    acc_l_y=int(round(acc_l_y_co*mdf_hgt+top_m,0))
-    acc_l_x=int(round(lgt-acc_l_x_co*mdf_hgt-rgt_m,0))
-    acc_r_y=acc_l_y
-    acc_r_x=int(round(lgt-acc_r_x_co*mdf_hgt-rgt_m,0))
-    
-    vp_y=int(round(vp_y_co*act_hgt+top_m,0))
-    vp_x_1=int(round(vp_x_1_co*mdf_hgt+lft_m,0))
-    vp_x_2=int(round(vp_x_2_co*mdf_hgt+lft_m,0))
-    vp_x_3=int(round(vp_x_3_co*mdf_hgt+lft_m,0))
-    vp_x_4=int(round(vp_x_4_co*mdf_hgt+lft_m,0))
-    
-    vp_2_y=int(round(vp_y_co*act_hgt+top_m - (vp_y_co-vp_2_y_co)*mdf_hgt,0))
-    vp_2_x_1=int(round(vp_2_x_1_co*mdf_hgt+lft_m,0))
-    vp_2_x_2=int(round(vp_2_x_2_co*mdf_hgt+lft_m,0))
-    vp_2_x_3=int(round(vp_2_x_3_co*mdf_hgt+lft_m,0))
-    vp_2_x_4=int(round(vp_2_x_4_co*mdf_hgt+lft_m,0))
-    
-    #print(p_m_y, p_m_x, m_p_m_y_2, m_p_m_x_2, m_p_l_y, m_p_l_x, acc_l_y, acc_l_x, acc_r_y, acc_r_x)
-
-    c=0
-    skip=0
-    pause_y_n=np.arange(0,frame_cont)
-    vp_y_n=np.arange(0,frame_cont)
-    
-    keep_frame_y_n=np.ones(int(frame_cont))  #0 means keep, 1 means no keep
     if mode=="懒人模式（保留有效暂停）":
-        while(c<frame_cont):     
+        i=0
+        while i<frame_cnt:     
             # get a frame
-            ret, frame = cap.read()   
-            if c<=start_f or c>=end_f:
-                keep_frame_y_n[c]=0
+            if i<=end_f:
+                ret, frame = cap.read()   
+            if i<start_f or i>end_f:
+                keep_frame_y_n[i]=0
             else:
-                if not(abs(float(sum(frame[p_l_y,p_l_x])/len(frame[p_l_y,p_l_x]))-float(sum(frame[p_m_y,p_m_x])/len(frame[p_m_y,p_m_x]))) < 10 or \
-                    (all(frame[m_p_l_y,m_p_l_x] > np.array([240,240,240]))\
-                    and all(frame[m_p_m_y,m_p_m_x] > np.array([240,240,240]))\
-                    and all(frame[m_p_r_y,m_p_r_x] > np.array([240,240,240]))) or \
-                    (all(frame[m_p_m_y,m_p_m_x] > np.array([128,128,128])) \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][0])-int(frame[m_p_l_y,m_p_l_x][0])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][1])-int(frame[m_p_l_y,m_p_l_x][1])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][2])-int(frame[m_p_l_y,m_p_l_x][2])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][0])-int(frame[m_p_r_y,m_p_r_x][0])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][1])-int(frame[m_p_r_y,m_p_r_x][1])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][2])-int(frame[m_p_r_y,m_p_r_x][2])) < 30 \
-                    and abs(int(frame[m_p_l_y,m_p_l_x][0])-int(frame[m_p_r_y,m_p_r_x][0])) < 30 \
-                    and abs(int(frame[m_p_l_y,m_p_l_x][1])-int(frame[m_p_r_y,m_p_r_x][1])) < 30 \
-                    and abs(int(frame[m_p_l_y,m_p_l_x][2])-int(frame[m_p_r_y,m_p_r_x][2])) < 30 \
-                    and all(frame[m_p_m_y_2,m_p_m_x_2] < np.array([128,128,128])) > 30)):
-                    pause_y_n[c]=1
-                    vp_y_n[c]=1
-                         #above means not a pause frame
-                    if all(frame[acc_r_y,acc_r_x] > np.array([200,200,200])) and \
-                        any(frame[acc_l_y,acc_l_x] < np.array([200,200,200])):
-                        skip=skip+1
-                        if(skip==1):
-                            skip=-1
+                if not(is_pause(frame,pc.p_m_y,pc.p_m_x,pc.p_l_y,pc.p_l_x,
+                        pc.m_p_m_y_2,pc.m_p_m_x_2,pc.m_p_l_y,pc.m_p_l_x,pc.m_p_m_y,pc.m_p_m_x,pc.m_p_r_y,pc.m_p_r_x)):
+                    if not(is_acceleration(frame,pc.acc_l_y,pc.acc_l_x,pc.acc_r_y,pc.acc_r_x)):
+                        if(skip):
+                            skip=False
                         else:
-                            keep_frame_y_n[c]=0
+                            skip=True
+                            keep_frame_y_n[i]=0
                     else:                    
-                        keep_frame_y_n[c]=0
+                        keep_frame_y_n[i]=0
                 else:
-                    pause_y_n[c]=0
-                    #print(c, ' is ', frame[vp_y,vp_x_1], frame[vp_y,vp_x_2], frame[vp_y,vp_x_3], frame[vp_y,vp_x_4])
-                    if(((55<=frame[vp_y,vp_x_1][0]<=130 and 55<=frame[vp_y,vp_x_1][1]<=130 and 55<=frame[vp_y,vp_x_1][2]<=130) and (55<=frame[vp_y,vp_x_2][0]<=130 and 55<=frame[vp_y,vp_x_2][1]<=130 and 55<=frame[vp_y,vp_x_2][2]<=130) and (55<=frame[vp_y,vp_x_3][0]<=130 and 55<=frame[vp_y,vp_x_3][1]<=130 and 55<=frame[vp_y,vp_x_3][2]<=130) and (55<=frame[vp_y,vp_x_4][0]<=130 and 55<=frame[vp_y,vp_x_4][1]<=130 and 55<=frame[vp_y,vp_x_4][2]<=130)) or ((55<=frame[vp_y-1,vp_x_1][0]<=130 and 55<=frame[vp_y-1,vp_x_1][1]<=130 and 55<=frame[vp_y-1,vp_x_1][2]<=130) and (55<=frame[vp_y-1,vp_x_2][0]<=130 and 55<=frame[vp_y-1,vp_x_2][1]<=130 and 55<=frame[vp_y-1,vp_x_2][2]<=130) and (55<=frame[vp_y-1,vp_x_3][0]<=130 and 55<=frame[vp_y-1,vp_x_3][1]<=130 and 55<=frame[vp_y-1,vp_x_3][2]<=130) and (55<=frame[vp_y-1,vp_x_4][0]<=130 and 55<=frame[vp_y-1,vp_x_4][1]<=130 and 55<=frame[vp_y-1,vp_x_4][2]<=130)) or ((55<=frame[vp_y+1,vp_x_1][0]<=130 and 55<=frame[vp_y+1,vp_x_1][1]<=130 and 55<=frame[vp_y+1,vp_x_1][2]<=130) and (55<=frame[vp_y+1,vp_x_2][0]<=130 and 55<=frame[vp_y+1,vp_x_2][1]<=130 and 55<=frame[vp_y+1,vp_x_2][2]<=130) and (55<=frame[vp_y+1,vp_x_3][0]<=130 and 55<=frame[vp_y+1,vp_x_3][1]<=130 and 55<=frame[vp_y+1,vp_x_3][2]<=130) and (55<=frame[vp_y+1,vp_x_4][0]<=130 and 55<=frame[vp_y+1,vp_x_4][1]<=130 and 55<=frame[vp_y+1,vp_x_4][2]<=130))) \
-                    and all(frame[vp_y-5,vp_x_1] < np.array([30,30,30])) \
-                    or (all(frame[vp_2_y,vp_2_x_1] > np.array([240,240,240])) or all(frame[vp_2_y,vp_2_x_2] > np.array([240,240,240])) or all(frame[vp_2_y,vp_2_x_3] > np.array([240,240,240])) or all(frame[vp_2_y,vp_2_x_4] > np.array([240,240,240]))):
-                    #or (all(frame[vp_3_y,vp_3_x_1] > np.array([240,240,240])) and 65<=frame[vp_3_y,vp_3_x_2][0]<=75 and 230<=frame[vp_3_y,vp_3_x_2][1]<=240 and 198<=frame[vp_3_y,vp_3_x_2][2]<=208):
-                        vp_y_n[c]=0
-                        keep_frame_y_n[c]=0
-                    else:
-                        vp_y_n[c]=1     
-            if(c==start_f):
-                print("开始分析暂停位置")
-            elif(c==int(start_f + (end_f-start_f)/10)):
-                print("10%")
-            elif(c==int(start_f + (end_f-start_f)/10*2)):
-                print("20%")
-            elif(c==int(start_f + (end_f-start_f)/10*3)):
-                print("30%")
-            elif(c==int(start_f + (end_f-start_f)/10*4)):
-                print("40%")
-            elif(c==int(start_f + (end_f-start_f)/10*5)):
-                print("50%")
-            elif(c==int(start_f + (end_f-start_f)/10*6)):
-                print("60%")
-            elif(c==int(start_f + (end_f-start_f)/10*7)):
-                print("70%")
-            elif(c==int(start_f + (end_f-start_f)/10*8)):
-                print("80%")
-            elif(c==int(start_f + (end_f-start_f)/10*9)):
-                print("90%")
-            elif(c==end_f):
-                print("100%")                   
-            c=c+1
-        c=1       
-        while(c<frame_cont):
-            if vp_y_n[c]==0 and vp_y_n[c-1]==1 and pause_y_n[c-1]==0:
-                a=c-1
+                    pause_y_n[i]=0
+                    if is_valid_pause(frame,pc.vp_y,pc.vp_x_1,pc.vp_x_2,pc.vp_x_3,pc.vp_x_4,
+                            pc.vp_2_y,pc.vp_2_x_1,pc.vp_2_x_2,pc.vp_2_x_3,pc.vp_2_x_4):
+                        vp_y_n[i]=0
+                        keep_frame_y_n[i]=0            
+                print_progress(i,start_f,end_f,"开始分析暂停位置","100%")            
+            i=i+1
+        i=1       
+        while(i<frame_cnt):
+            if vp_y_n[i]==0 and vp_y_n[i-1]==1 and pause_y_n[i-1]==0:
+                a=i-1
                 while(pause_y_n[a]==0 and a>=0):
                     vp_y_n[a]=0
                     keep_frame_y_n[a]=0
                     a=a-1
-                a=c+1
-                while(pause_y_n[a]==0 and a<frame_cont):
+                a=i+1
+                while(pause_y_n[a]==0 and a<frame_cnt):
                     vp_y_n[a]=0
                     keep_frame_y_n[a]=0
                     a=a+1
-            c=c+1
+            i=i+1
+        cap.release()
         cap = cv2.VideoCapture(video_path)
-        c=0
-        while(c<frame_cont):     
+        i=0
+        while(i<frame_cnt):     
             # get a frame
             ret, frame = cap.read()   
-            if keep_frame_y_n[c]==0:
+            if keep_frame_y_n[i]==0:
                 out.write(frame)   
-            if(c==start_f):
-                print("已复制开始秒数之前的片段，开始剪掉暂停及加速")
-            elif(c==int(start_f + (end_f-start_f)/10)):
-                print("10%")
-            elif(c==int(start_f + (end_f-start_f)/10*2)):
-                print("20%")
-            elif(c==int(start_f + (end_f-start_f)/10*3)):
-                print("30%")
-            elif(c==int(start_f + (end_f-start_f)/10*4)):
-                print("40%")
-            elif(c==int(start_f + (end_f-start_f)/10*5)):
-                print("50%")
-            elif(c==int(start_f + (end_f-start_f)/10*6)):
-                print("60%")
-            elif(c==int(start_f + (end_f-start_f)/10*7)):
-                print("70%")
-            elif(c==int(start_f + (end_f-start_f)/10*8)):
-                print("80%")
-            elif(c==int(start_f + (end_f-start_f)/10*9)):
-                print("90%")
-            elif(c==end_f):
-                print("100%，正在复制结束秒数之后的片段请稍后")
-            c=c+1
-    elif mode=="懒人模式（暂停全剪）":        
-        while(c<frame_cont):     
+            print_progress(i,start_f,end_f,"已复制开始秒数之前的片段，开始剪掉暂停及加速","100%，正在复制结束秒数之后的片段请稍后")   
+            i=i+1
+    elif mode=="懒人模式（暂停全剪）":   
+        i=0     
+        while(i<frame_cnt):     
             # get a frame
             ret, frame = cap.read()   
-            if c<=start_f or c>=end_f:
+            if i<start_f or i>end_f:
                 out.write(frame)   
             else:
-                if not(abs(float(sum(frame[p_l_y,p_l_x])/len(frame[p_l_y,p_l_x]))-float(sum(frame[p_m_y,p_m_x])/len(frame[p_m_y,p_m_x]))) < 10 or \
-                    (all(frame[m_p_l_y,m_p_l_x] > np.array([240,240,240]))\
-                    and all(frame[m_p_m_y,m_p_m_x] > np.array([240,240,240]))\
-                    and all(frame[m_p_r_y,m_p_r_x] > np.array([240,240,240]))) or \
-                    (all(frame[m_p_m_y,m_p_m_x] > np.array([128,128,128])) \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][0])-int(frame[m_p_l_y,m_p_l_x][0])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][1])-int(frame[m_p_l_y,m_p_l_x][1])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][2])-int(frame[m_p_l_y,m_p_l_x][2])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][0])-int(frame[m_p_r_y,m_p_r_x][0])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][1])-int(frame[m_p_r_y,m_p_r_x][1])) < 30 \
-                    and abs(int(frame[m_p_m_y,m_p_m_x][2])-int(frame[m_p_r_y,m_p_r_x][2])) < 30 \
-                    and abs(int(frame[m_p_l_y,m_p_l_x][0])-int(frame[m_p_r_y,m_p_r_x][0])) < 30 \
-                    and abs(int(frame[m_p_l_y,m_p_l_x][1])-int(frame[m_p_r_y,m_p_r_x][1])) < 30 \
-                    and abs(int(frame[m_p_l_y,m_p_l_x][2])-int(frame[m_p_r_y,m_p_r_x][2])) < 30 \
-                    and all(frame[m_p_m_y_2,m_p_m_x_2] < np.array([128,128,128])) > 30)):
-                    if all(frame[acc_r_y,acc_r_x] > np.array([200,200,200])) and \
-                        any(frame[acc_l_y,acc_l_x] < np.array([200,200,200])):
-                        skip=skip+1
-                        if(skip==1):
-                            skip=-1
+                if not(is_pause(frame,pc.p_m_y,pc.p_m_x,pc.p_l_y,pc.p_l_x,
+                        pc.m_p_m_y_2,pc.m_p_m_x_2,pc.m_p_l_y,pc.m_p_l_x,pc.m_p_m_y,pc.m_p_m_x,pc.m_p_r_y,pc.m_p_r_x)):
+                    if not(is_acceleration(frame,pc.acc_l_y,pc.acc_l_x,pc.acc_r_y,pc.acc_r_x)):
+                        if(skip):
+                            skip=False
                         else:
+                            skip=True
                             out.write(frame)
                     else:                    
                         out.write(frame)
-            if(c==start_f):
-                print("已复制开始秒数之前的片段，开始剪掉暂停及加速")
-            elif(c==int(start_f + (end_f-start_f)/10)):
-                print("10%")
-            elif(c==int(start_f + (end_f-start_f)/10*2)):
-                print("20%")
-            elif(c==int(start_f + (end_f-start_f)/10*3)):
-                print("30%")
-            elif(c==int(start_f + (end_f-start_f)/10*4)):
-                print("40%")
-            elif(c==int(start_f + (end_f-start_f)/10*5)):
-                print("50%")
-            elif(c==int(start_f + (end_f-start_f)/10*6)):
-                print("60%")
-            elif(c==int(start_f + (end_f-start_f)/10*7)):
-                print("70%")
-            elif(c==int(start_f + (end_f-start_f)/10*8)):
-                print("80%")
-            elif(c==int(start_f + (end_f-start_f)/10*9)):
-                print("90%")
-            elif(c==end_f):
-                print("100%，正在复制结束秒数之后的片段请稍后")
-            c=c+1
+                print_progress(i,start_f,end_f,"已复制开始秒数之前的片段，开始剪掉暂停及加速","100%，正在复制结束秒数之后的片段请稍后")  
+            i=i+1
     cap.release()
     cv2.destroyAllWindows()
 
-def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second): 
-
+def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second):
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     cap = cv2.VideoCapture(video_path)
-    
+
     #settings
-    frame_cont=cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    lgt=cap.get(cv2.CAP_PROP_FRAME_WIDTH)       #length
-    hgt=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)    #height
+    frame_cnt=int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    lgt=cap.get(cv2.CAP_PROP_FRAME_WIDTH)      
+    hgt=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)   
     
-    top_m=int(top_margin)    
-    bot_m=int(bottom_margin)
-    lft_m=int(left_margin)  
-    rgt_m=int(right_margin)
-    
-    act_hgt=int(round(hgt-top_m-bot_m,0))
-    
-    act_lgt=int(round(lgt-lft_m-rgt_m,0))
-    
-    if act_lgt*1080<act_hgt*1920:
-        mdf_hgt=int(round(act_lgt/1920*1080,0))
-    else:
-        mdf_hgt=act_hgt
-        
     fps=int(cap.get(cv2.CAP_PROP_FPS))       #
-    start_f=int(start_second)*fps#start frame (will keep frames before this)
-    end_f=int(end_second)*fps  #end frame   (will keep frames after this)
+    start_f=start_second*fps #start frame (will keep frames before this)
+    end_f=end_second*fps  #end frame   (will keep frames after this)
 
-    size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    size = (int(lgt),int(hgt))  # requires both int
+    out = cv2.VideoWriter('./working_folder/out.mp4', fourcc, fps, size)
+    
+    pc = PointCoordinates()
+    pc.calculate_coordinates(lgt,hgt,top_margin,bottom_margin,left_margin,right_margin);        
 
-    p_m_y_co=0.074             #(right top) pause middle coefficient
-    p_m_x_co=0.112
-    p_l_x_co=0.125
-    m_p_m_y_2_co=0.5           #this is the black point, other 3 are white point 
-    m_p_m_x_2_co=0.5           
-    m_p_l_y_co=0.007           #middle PAUSE
-    m_p_l_x_co=0.19
-    m_p_m_y_co=0.043
-    m_p_r_y_co=0.023
-    m_p_r_x_co=0.149
+    skip=True
+    pause_y_n=np.ones(frame_cnt)  #0 means a pause, 1 means not a pause
+    vp_y_n=np.ones(frame_cnt)  
     
-    vp_y_co=0.5       #valid pause
-    vp_x_1_co=0.046
-    vp_x_2_co=0.093
-    vp_x_3_co=0.139
-    vp_x_4_co=0.185
-    
-    vp_2_y_co=0.389   #second option to check valid pause
-    vp_2_x_1_co=0.188 #wendi
-    vp_2_x_2_co=0.197 #niaolong(mozu)
-    vp_2_x_3_co=0.206 #m3
-    vp_2_x_4_co=0.217 #panxie
-    
-    #vp_3_y_co=0.669   #third option to check valid pause (just before click skill)
-    #vp_3_x_1_co=0.121 #from middle point (white)
-    #vp_3_x_2_co=0.140 #(green)
-
-    p_m_y=int(round(p_m_y_co*mdf_hgt+top_m,0))
-    p_m_x=int(round(lgt-p_m_x_co*mdf_hgt-rgt_m,0))
-    p_l_y=p_m_y
-    p_l_x=int(round(lgt-p_l_x_co*mdf_hgt-rgt_m,0))
-
-    m_p_m_y_2=int(round(m_p_m_y_2_co*act_hgt+top_m,0))
-    m_p_m_x_2=int(round(m_p_m_x_2_co*(lgt-lft_m-rgt_m)+lft_m,0))
-
-    m_p_l_y=int(round(m_p_m_y_2+m_p_l_y_co*mdf_hgt,0))   
-    m_p_l_x=int(round(m_p_m_x_2-m_p_l_x_co*mdf_hgt,0))   
-    m_p_m_y=int(round(m_p_m_y_2+m_p_m_y_co*mdf_hgt,0))
-    m_p_m_x=m_p_m_x_2
-    m_p_r_y=int(round(m_p_m_y_2-m_p_r_y_co*mdf_hgt,0))  
-    m_p_r_x=int(round(m_p_m_x_2+m_p_r_x_co*mdf_hgt,0))
-
-    vp_y=int(round(vp_y_co*act_hgt+top_m,0))
-    vp_x_1=int(round(vp_x_1_co*mdf_hgt+lft_m,0))
-    vp_x_2=int(round(vp_x_2_co*mdf_hgt+lft_m,0))
-    vp_x_3=int(round(vp_x_3_co*mdf_hgt+lft_m,0))
-    vp_x_4=int(round(vp_x_4_co*mdf_hgt+lft_m,0))
-    
-    vp_2_y=int(round(vp_y_co*act_hgt+top_m - (vp_y_co-vp_2_y_co)*mdf_hgt,0))
-    vp_2_x_1=int(round(vp_2_x_1_co*mdf_hgt+lft_m,0))
-    vp_2_x_2=int(round(vp_2_x_2_co*mdf_hgt+lft_m,0))
-    vp_2_x_3=int(round(vp_2_x_3_co*mdf_hgt+lft_m,0))
-    vp_2_x_4=int(round(vp_2_x_4_co*mdf_hgt+lft_m,0))
-    
-    #vp_3_y=int(round(vp_3_y_co*mdf_hgt+top_m,0))
-    #vp_3_x_1=int(round(vp_3_x_1_co*mdf_hgt+lft_m+0.5*(lgt-lft_m-rgt_m),0))
-    #vp_3_x_2=int(round(vp_3_x_2_co*mdf_hgt+lft_m+0.5*(lgt-lft_m-rgt_m),0))
-    
-    #print(vp_y, vp_x_1,vp_x_2,vp_x_3,vp_x_4)
-    #print(act_hgt, mdf_hgt)
-    #print(p_m_y, p_m_x, m_p_l_y, m_p_l_x, vp_y, vp_x_1, vp_x_4, vp_2_y, vp_2_x_1, vp_2_x_4)
-#68 1522 546 638 540 42 169 439 172 198 611 923 940  -- print
-    c=0
-    pause_y_n=np.arange(0,frame_cont)
-    vp_y_n=np.arange(0,frame_cont)
-    while(c<frame_cont):
+    i=0
+    while i<frame_cnt:     
         # get a frame
-        ret, frame = cap.read()
-        #print(frame[vp_2_y,vp_2_x_3])
-        if c<=start_f or c>=end_f:
-            pause_y_n[c]=1
-            vp_y_n[c]=1
-        else:
-            if not(abs(float(sum(frame[p_l_y,p_l_x])/len(frame[p_l_y,p_l_x]))-float(sum(frame[p_m_y,p_m_x])/len(frame[p_m_y,p_m_x]))) < 10 or \
-                (all(frame[m_p_l_y,m_p_l_x] > np.array([240,240,240]))\
-                and all(frame[m_p_m_y,m_p_m_x] > np.array([240,240,240]))\
-                and all(frame[m_p_r_y,m_p_r_x] > np.array([240,240,240]))) or \
-                (all(frame[m_p_m_y,m_p_m_x] > np.array([128,128,128])) \
-                and abs(int(frame[m_p_m_y,m_p_m_x][0])-int(frame[m_p_l_y,m_p_l_x][0])) < 30 \
-                and abs(int(frame[m_p_m_y,m_p_m_x][1])-int(frame[m_p_l_y,m_p_l_x][1])) < 30 \
-                and abs(int(frame[m_p_m_y,m_p_m_x][2])-int(frame[m_p_l_y,m_p_l_x][2])) < 30 \
-                and abs(int(frame[m_p_m_y,m_p_m_x][0])-int(frame[m_p_r_y,m_p_r_x][0])) < 30 \
-                and abs(int(frame[m_p_m_y,m_p_m_x][1])-int(frame[m_p_r_y,m_p_r_x][1])) < 30 \
-                and abs(int(frame[m_p_m_y,m_p_m_x][2])-int(frame[m_p_r_y,m_p_r_x][2])) < 30 \
-                and abs(int(frame[m_p_l_y,m_p_l_x][0])-int(frame[m_p_r_y,m_p_r_x][0])) < 30 \
-                and abs(int(frame[m_p_l_y,m_p_l_x][1])-int(frame[m_p_r_y,m_p_r_x][1])) < 30 \
-                and abs(int(frame[m_p_l_y,m_p_l_x][2])-int(frame[m_p_r_y,m_p_r_x][2])) < 30 \
-                and all(frame[m_p_m_y_2,m_p_m_x_2] < np.array([128,128,128])) > 30)):
-                    pause_y_n[c]=1
-                    vp_y_n[c]=1
-                         #above means not a pause frame
-            else:
-                pause_y_n[c]=0
-                if(((55<=frame[vp_y,vp_x_1][0]<=130 and 55<=frame[vp_y,vp_x_1][1]<=130 and 55<=frame[vp_y,vp_x_1][2]<=130) and (55<=frame[vp_y,vp_x_2][0]<=130 and 55<=frame[vp_y,vp_x_2][1]<=130 and 55<=frame[vp_y,vp_x_2][2]<=130) and (55<=frame[vp_y,vp_x_3][0]<=130 and 55<=frame[vp_y,vp_x_3][1]<=130 and 55<=frame[vp_y,vp_x_3][2]<=130) and (55<=frame[vp_y,vp_x_4][0]<=130 and 55<=frame[vp_y,vp_x_4][1]<=130 and 55<=frame[vp_y,vp_x_4][2]<=130)) or ((55<=frame[vp_y-1,vp_x_1][0]<=130 and 55<=frame[vp_y-1,vp_x_1][1]<=130 and 55<=frame[vp_y-1,vp_x_1][2]<=130) and (55<=frame[vp_y-1,vp_x_2][0]<=130 and 55<=frame[vp_y-1,vp_x_2][1]<=130 and 55<=frame[vp_y-1,vp_x_2][2]<=130) and (55<=frame[vp_y-1,vp_x_3][0]<=130 and 55<=frame[vp_y-1,vp_x_3][1]<=130 and 55<=frame[vp_y-1,vp_x_3][2]<=130) and (55<=frame[vp_y-1,vp_x_4][0]<=130 and 55<=frame[vp_y-1,vp_x_4][1]<=130 and 55<=frame[vp_y-1,vp_x_4][2]<=130)) or ((55<=frame[vp_y+1,vp_x_1][0]<=130 and 55<=frame[vp_y+1,vp_x_1][1]<=130 and 55<=frame[vp_y+1,vp_x_1][2]<=130) and (55<=frame[vp_y+1,vp_x_2][0]<=130 and 55<=frame[vp_y+1,vp_x_2][1]<=130 and 55<=frame[vp_y+1,vp_x_2][2]<=130) and (55<=frame[vp_y+1,vp_x_3][0]<=130 and 55<=frame[vp_y+1,vp_x_3][1]<=130 and 55<=frame[vp_y+1,vp_x_3][2]<=130) and (55<=frame[vp_y+1,vp_x_4][0]<=130 and 55<=frame[vp_y+1,vp_x_4][1]<=130 and 55<=frame[vp_y+1,vp_x_4][2]<=130))) \
-                and all(frame[vp_y-5,vp_x_1] < np.array([30,30,30])) \
-                or (all(frame[vp_2_y,vp_2_x_1] > np.array([240,240,240])) or all(frame[vp_2_y,vp_2_x_2] > np.array([240,240,240])) or all(frame[vp_2_y,vp_2_x_3] > np.array([240,240,240])) or all(frame[vp_2_y,vp_2_x_4] > np.array([240,240,240]))):
+        if i<=end_f:
+            ret, frame = cap.read()   
+        if i>=start_f and i<=end_f:
+            if is_pause(frame,pc.p_m_y,pc.p_m_x,pc.p_l_y,pc.p_l_x,
+                    pc.m_p_m_y_2,pc.m_p_m_x_2,pc.m_p_l_y,pc.m_p_l_x,pc.m_p_m_y,pc.m_p_m_x,pc.m_p_r_y,pc.m_p_r_x):
+                pause_y_n[i]=0
+                #print(i, ' is ', frame[vp_y,vp_x_1], frame[vp_y,vp_x_2], frame[vp_y,vp_x_3], frame[vp_y,vp_x_4])
+                if is_valid_pause(frame,pc.vp_y,pc.vp_x_1,pc.vp_x_2,pc.vp_x_3,pc.vp_x_4,
+                        pc.vp_2_y,pc.vp_2_x_1,pc.vp_2_x_2,pc.vp_2_x_3,pc.vp_2_x_4):
                 #or (all(frame[vp_3_y,vp_3_x_1] > np.array([240,240,240])) and 65<=frame[vp_3_y,vp_3_x_2][0]<=75 and 230<=frame[vp_3_y,vp_3_x_2][1]<=240 and 198<=frame[vp_3_y,vp_3_x_2][2]<=208):
-                    vp_y_n[c]=0
-                else:
-                    vp_y_n[c]=1
-                #print(c, ' is ', frame[vp_y,vp_x_1], frame[vp_y,vp_x_2], frame[vp_y,vp_x_3], frame[vp_y,vp_x_4], frame[vp_y-5,vp_x_1], ', vp_y_n is ', vp_y_n[c])
-                #print('  ', c, ' is ', frame[vp_y-1,vp_x_1], frame[vp_y-1,vp_x_2], frame[vp_y-1,vp_x_3], frame[vp_y-1,vp_x_4])
-                #print('  ', c, ' is ', frame[vp_y+1,vp_x_1], frame[vp_y+1,vp_x_2], frame[vp_y+1,vp_x_3], frame[vp_y+1,vp_x_4])
+                    vp_y_n[i]=0         
+            print_progress(i,start_f,end_f,"开始分析暂停位置","100%")            
+        i=i+1        
         
-        if(c==start_f):
-            print("开始分析暂停位置")
-        elif(c==int(start_f + (end_f-start_f)/10)):
-            print("10%")
-        elif(c==int(start_f + (end_f-start_f)/10*2)):
-            print("20%")
-        elif(c==int(start_f + (end_f-start_f)/10*3)):
-            print("30%")
-        elif(c==int(start_f + (end_f-start_f)/10*4)):
-            print("40%")
-        elif(c==int(start_f + (end_f-start_f)/10*5)):
-            print("50%")
-        elif(c==int(start_f + (end_f-start_f)/10*6)):
-            print("60%")
-        elif(c==int(start_f + (end_f-start_f)/10*7)):
-            print("70%")
-        elif(c==int(start_f + (end_f-start_f)/10*8)):
-            print("80%")
-        elif(c==int(start_f + (end_f-start_f)/10*9)):
-            print("90%")
-        elif(c==end_f):
-            print("100%")
-        c=c+1        
-    
-    
-    #with open('./abc.txt','a+') as f:
-        #print('pause_y_n start',file=f)
-        #for x in pause_y_n:
-            #print(x,file=f)
-        #print('pause_y_n end',file=f)
-    #with open('./abc.txt','a+') as f:
-        #print('vp_y_n start',file=f)
-        #for x in vp_y_n:
-            #print(x,file=f)
-        #print('vp_y_n end',file=f)
- #    while(c<frame_cont):
-#        if vp_y_n[c]==0 and vp_y_n[c-1]==1 and pause_y_n[c-1]==0:
-#            a=c-2
-#            vp_y_n[c-1]=0
-#            while(a>=0):
-#                if pause_y_n[a]==1:
-#                    vp_y_n[a+1]=0
-#                    vp_y_n[a]=1
-#                    break
-#                else:
-#                    vp_y_n[a]=0
-#                a=a-1
-#        c=c+1       
-    c=1       
-    while(c<frame_cont):
-        if vp_y_n[c]==0 and vp_y_n[c-1]==1 and pause_y_n[c-1]==0:
-            a=c-1
+    i=1       
+    while(i<frame_cnt):
+        if vp_y_n[i]==0 and vp_y_n[i-1]==1 and pause_y_n[i-1]==0:
+            a=i-1
             while(pause_y_n[a]==0 and a>=0):
                 vp_y_n[a]=0
                 a=a-1
-            a=c+1
-            while(pause_y_n[a]==0 and a<frame_cont):
+            a=i+1
+            while(pause_y_n[a]==0 and a<frame_cnt):
                 vp_y_n[a]=0
                 a=a+1
-        c=c+1
-        
-    #c=1       
-    #while(c<frame_cont):
-        #if vp_y_n[c-1]==0 and pause_y_n[c]==1:
-            #print("c is ",c)
-            #a=c-1
-            #while(pause_y_n[a]==0 and a>=0):
-                #print("vp_y_n[",a,"] has changed to 1")
-                #vp_y_n[a]=1
-                #a=a-1
-        #c=c+1
+        i=i+1   
     
-    #with open('./abc.txt','a+') as f:
-    #    print('-----------------------',file=f)
-    #    print('vp_y_n start',file=f)
-    #    for x in vp_y_n:
-    #        print(x,file=f)
-    #    print('vp_y_n end',file=f)
-    
-    
-    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    cap.release()
     cap = cv2.VideoCapture(video_path)
-    sound_ind = 1
+    has_sound = True
     try:
         sound = AudioSegment.from_file(video_path, format=os.path.splitext(video_path)[-1].split(".")[1])    
     except:
-        sound_ind = 0
-    #print("sound_ind is ", sound_ind)
+        has_sound = False
+        
     index=0    
     vp=''
     if vp_y_n[0]==0:
@@ -762,7 +589,7 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     stop_time=0
     inc=1/fps*1000
     check=0
-    c=0
+    i=0
 
             #stop_time=inc
             #stop_time=stop_time+inc
@@ -771,17 +598,17 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
             #word.export('./working_folder/out_'+str(index)+'.mp3')
             #start_time=stop_time
 
-    while(c<frame_cont-1):
+    while(i<frame_cnt-1):
         # get a frame
         ret, frame = cap.read()
-        if c==0:
+        if i==0:
             out.write(frame)
             stop_time=inc
-        elif pause_y_n[c]==pause_y_n[c-1]:
+        elif pause_y_n[i]==pause_y_n[i-1]:
             check=0
             out.write(frame)
             stop_time=stop_time+inc
-        elif pause_y_n[c]!=pause_y_n[c-1] and pause_y_n[c+1]!=pause_y_n[c]:
+        elif pause_y_n[i]!=pause_y_n[i-1] and pause_y_n[i+1]!=pause_y_n[i]:
             if check==1:
                 out.write(frame)
                 stop_time=stop_time+inc
@@ -793,15 +620,15 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                     vp='无效暂停'
                 else:
                     vp=''
-                if(sound_ind):
+                if(has_sound):
                     word=sound[start_time:stop_time+fps]
                     word.export('./working_folder/out_'+str(index)+vp+'.mp3')
                     #print("first part start_time to stop_time is ", start_time, " ", stop_time)
                 start_time=stop_time
                 index=index+1
-                if vp_y_n[c]==0:
+                if vp_y_n[i]==0:
                     vp='有效暂停'
-                elif pause_y_n[c]==0:
+                elif pause_y_n[i]==0:
                     vp='无效暂停'
                 else:
                     vp=''
@@ -809,15 +636,15 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                 out.write(frame)
                 stop_time=stop_time+inc
                 out.release()
-                if(sound_ind):
+                if(has_sound):
                     word=sound[start_time:stop_time+fps]            
                     word.export('./working_folder/out_'+str(index)+vp+'.mp3')
                     #print("second part start_time to stop_time is ", start_time, " ", stop_time)
                 start_time=stop_time
                 index=index+1
-                if vp_y_n[c+1]==0:
+                if vp_y_n[i+1]==0:
                     vp='有效暂停'
-                elif pause_y_n[c+1]==0:
+                elif pause_y_n[i+1]==0:
                     vp='无效暂停'
                 else:
                     vp=''
@@ -836,44 +663,25 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                     vp='无效暂停'
                 else:
                     vp=''
-                if(sound_ind):
+                if(has_sound):
                     word=sound[start_time:stop_time+fps]            
                     word.export('./working_folder/out_'+str(index)+vp+'.mp3')
                     #print("third part start_time to stop_time is ", start_time, " ", stop_time)
                 start_time=stop_time
                 index=index+1
-                if vp_y_n[c]==0:
+                if vp_y_n[i]==0:
                     vp='有效暂停'
-                elif pause_y_n[c]==0:
+                elif pause_y_n[i]==0:
                     vp='无效暂停'
                 else:
                     vp=''
                 out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
                 out.write(frame)
                 stop_time=stop_time+inc
-        if(c==start_f):
-            print("已复制开始秒数之前的片段，继续生成分离片段")
-        elif(c==int(start_f + (end_f-start_f)/10)):
-            print("10%")
-        elif(c==int(start_f + (end_f-start_f)/10*2)):
-            print("20%")
-        elif(c==int(start_f + (end_f-start_f)/10*3)):
-            print("30%")
-        elif(c==int(start_f + (end_f-start_f)/10*4)):
-            print("40%")
-        elif(c==int(start_f + (end_f-start_f)/10*5)):
-            print("50%")
-        elif(c==int(start_f + (end_f-start_f)/10*6)):
-            print("60%")
-        elif(c==int(start_f + (end_f-start_f)/10*7)):
-            print("70%")
-        elif(c==int(start_f + (end_f-start_f)/10*8)):
-            print("80%")
-        elif(c==int(start_f + (end_f-start_f)/10*9)):
-            print("90%")
-        elif(c==end_f):
-            print("100%，正在复制结束秒数之后的片段请稍后")
-        c=c+1
+        
+        print_progress(i,start_f,end_f,"已复制开始秒数之前的片段，继续生成分离片段","100%，正在复制结束秒数之后的片段请稍后")
+        
+        i=i+1
 
     out.release()
     if vp_y_n[int(round(start_time/inc,0))]==0:
@@ -883,7 +691,7 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     else:
         vp=''
     
-    if(sound_ind):
+    if(has_sound):
         word=sound[start_time:stop_time+fps]
         word.export('./working_folder/out_'+str(index)+vp+'.mp3')                 
         #print("last part start_time to stop_time is ", start_time, " ", stop_time)
@@ -892,87 +700,44 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     cv2.destroyAllWindows()
     
   
+    working_folder_list=os.listdir(working_path)
+    working_folder_list.sort(key=lambda fn: os.path.getmtime(working_path+fn) if not os.path.isdir(working_path+fn) else 0)
 
-    file_dir="./working_folder/"
-    list=os.listdir(file_dir)
-    list.sort(key=lambda fn: os.path.getmtime(file_dir+fn) if not os.path.isdir(file_dir+fn) else 0)
-
-    count=int(list[-1].split("_")[1].split(".")[0])
+    count=int(working_folder_list[-1].split("_")[1].split(".")[0])
     #print("片段数量为",count)
     i=0
     while(i<=count):
         j=pow(10,len(str(count)))+i
-        if(sound_ind):
-            subprocess.call('ffmpeg -loglevel ''quiet'' -i '+file_dir+"out_"+str(i)+".mp4"+' -i '+file_dir+"out_"+str(i)+".mp3"+' -c:v copy -c:a aac '+file_dir+str(j)+".mp4",shell = True)
-            subprocess.call('ffmpeg -loglevel ''quiet'' -i '+file_dir+"out_"+str(i)+"有效暂停.mp4"+' -i '+file_dir+"out_"+str(i)+"有效暂停.mp3"+' -c:v copy -c:a aac '+file_dir+str(j)+"有效暂停.mp4",shell = True)
+        if(has_sound):
+            subprocess.call('ffmpeg -loglevel ''quiet'' -i '+working_path+"out_"+str(i)+".mp4"+' -i '+working_path+"out_"+str(i)+".mp3"+' -c:v copy -c:a aac '+working_path+str(j)+".mp4",shell = True)
+            subprocess.call('ffmpeg -loglevel ''quiet'' -i '+working_path+"out_"+str(i)+"有效暂停.mp4"+' -i '+working_path+"out_"+str(i)+"有效暂停.mp3"+' -c:v copy -c:a aac '+working_path+str(j)+"有效暂停.mp4",shell = True)
             if(mode=="正常模式（保留无效暂停视频）"):
-                subprocess.call('ffmpeg -loglevel ''quiet'' -i '+file_dir+"out_"+str(i)+"无效暂停.mp4"+' -i '+file_dir+"out_"+str(i)+"无效暂停.mp3"+' -c:v copy -c:a aac '+file_dir+str(j)+"无效暂停.mp4",shell = True)
+                subprocess.call('ffmpeg -loglevel ''quiet'' -i '+working_path+"out_"+str(i)+"无效暂停.mp4"+' -i '+working_path+"out_"+str(i)+"无效暂停.mp3"+' -c:v copy -c:a aac '+working_path+str(j)+"无效暂停.mp4",shell = True)
             else:    
                 try:
-                    os.rename(file_dir+"out_"+str(i)+"无效暂停.mp3",file_dir+str(j)+"无效暂停.mp3")
+                    os.rename(working_path+"out_"+str(i)+"无效暂停.mp3",working_path+str(j)+"无效暂停.mp3")
                 except:
                     dummy=0                
-            if(i==0):
-                print("开始合并音频视频片段")
-            elif(i==int(count/10)):
-                print("10%")
-            elif(i==int(count/10*2)):
-                print("20%")
-            elif(i==int(count/10*3)):
-                print("30%")
-            elif(i==int(count/10*4)):
-                print("40%")
-            elif(i==int(count/10*5)):
-                print("50%")
-            elif(i==int(count/10*6)):
-                print("60%")
-            elif(i==int(count/10*7)):
-                print("70%")
-            elif(i==int(count/10*8)):
-                print("80%")
-            elif(i==int(count/10*9)):
-                print("90%")
-            elif(i==count):
-                print("100%，正在清理片段请稍后")
+            
+            print_progress(i,0,count,"开始合并音频视频片段","100%，正在清理片段请稍后")
             i=i+1
         else:
             try:
-                os.rename(file_dir+"out_"+str(i)+".mp4",file_dir+str(j)+".mp4")
+                os.rename(working_path+"out_"+str(i)+".mp4",working_path+str(j)+".mp4")
             except:
                 dummy=0
             try:
-                os.rename(file_dir+"out_"+str(i)+"有效暂停.mp4",file_dir+str(j)+"有效暂停.mp4")
+                os.rename(working_path+"out_"+str(i)+"有效暂停.mp4",working_path+str(j)+"有效暂停.mp4")
             except:
                 dummy=0   
             if(mode=="正常模式（保留无效暂停视频）"):
                 try:
-                    os.rename(file_dir+"out_"+str(i)+"无效暂停.mp4",file_dir+str(j)+"无效暂停.mp4")
+                    os.rename(working_path+"out_"+str(i)+"无效暂停.mp4",working_path+str(j)+"无效暂停.mp4")
                 except:
-                    dummy=0              
-            if(i==0):
-                print("视频未检测出音频，仅重命名")
-            elif(i==int(count/10)):
-                print("10%")
-            elif(i==int(count/10*2)):
-                print("20%")
-            elif(i==int(count/10*3)):
-                print("30%")
-            elif(i==int(count/10*4)):
-                print("40%")
-            elif(i==int(count/10*5)):
-                print("50%")
-            elif(i==int(count/10*6)):
-                print("60%")
-            elif(i==int(count/10*7)):
-                print("70%")
-            elif(i==int(count/10*8)):
-                print("80%")
-            elif(i==int(count/10*9)):
-                print("90%")
-            elif(i==count):
-                print("100%，重命名完成")
+                    dummy=0    
+            print_progress(i,0,count,"视频未检测出音频，仅重命名","100%，重命名完成")      
             i=i+1
-    if(sound_ind):       
+    if(has_sound):       
         for root , dirs, files in os.walk(working_path):
             for name in files:
                 if name.startswith("out"):
