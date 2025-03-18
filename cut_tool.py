@@ -51,6 +51,9 @@ P_DIFF_TH = 10 # threshold
 M_P_DIFF_TH = np.array([30, 30, 30]) # threshold
 GRAY_LOWER = np.array([55, 55, 55])
 GRAY_UPPER = np.array([130, 130, 130])
+
+MARGIN_TH = 200
+
     
 def check_margin(top_margin, bottom_margin, left_margin, right_margin):
     if not (
@@ -62,10 +65,10 @@ def check_margin(top_margin, bottom_margin, left_margin, right_margin):
         messagebox.showerror(title="出错了！", message="边距参数有误（需整数）")
         return False
     if (
-        int(top_margin) >= 200
-        or int(bottom_margin) >= 200
-        or int(left_margin) >= 200
-        or int(right_margin) >= 200
+        int(top_margin) > MARGIN_TH
+        or int(bottom_margin) > MARGIN_TH
+        or int(left_margin) > MARGIN_TH
+        or int(right_margin) > MARGIN_TH
     ):
         messagebox.showerror(title="出错了！", message="边距像素数过大，请重新设置")
         return False
@@ -229,7 +232,7 @@ def measure_margin(measure_margin_second):
                 right_margin=lgt-1-top_rgt_x
                 top_margin=math.floor(top_rgt_y-2-1/3*(bot_lft_y+1-top_rgt_y+2)) 
                 #print(top_margin,bottom_margin,left_margin,right_margin)
-                if(top_margin>500 or bottom_margin>500 or left_margin>500 or right_margin>500):
+                if(top_margin>MARGIN_TH or bottom_margin>MARGIN_TH or left_margin>MARGIN_TH or right_margin>MARGIN_TH):
                     messagebox.showerror(title="出错了！", message="计算有误，请重新输入正确的检测边距秒数（显示编队的帧）")
                     return False                   
                 set_margin(top_margin,bottom_margin,left_margin,right_margin)
@@ -283,6 +286,7 @@ def crop(top_margin, bottom_margin, left_margin, right_margin):
                 os.rename(video_path, "./" + orig_name)
                 print("已完成，请在working_folder下查看裁剪后的aftercrop.mp4文件，原文件已移动至上级目录")
                 set_margin(0, 0, 0, 0)
+                print("边距已重置为0")
                 return True
 
 
@@ -469,9 +473,9 @@ def is_pause(
         return True
     if (
         all(frame[m_p_m_y, m_p_m_x] > GRAY)
-        and all(abs(frame[m_p_m_y, m_p_m_x] - frame[m_p_l_y, m_p_l_x])) < M_P_DIFF_TH
-        and all(abs(frame[m_p_m_y, m_p_m_x] - frame[m_p_r_y, m_p_r_x])) < M_P_DIFF_TH
-        and all(abs(frame[m_p_l_y, m_p_l_x] - frame[m_p_r_y, m_p_r_x])) < M_P_DIFF_TH
+        and all(abs(frame[m_p_m_y, m_p_m_x] - frame[m_p_l_y, m_p_l_x]) < M_P_DIFF_TH)
+        and all(abs(frame[m_p_m_y, m_p_m_x] - frame[m_p_r_y, m_p_r_x]) < M_P_DIFF_TH)
+        and all(abs(frame[m_p_l_y, m_p_l_x] - frame[m_p_r_y, m_p_r_x]) < M_P_DIFF_TH)
         and all(frame[m_p_m_y_2, m_p_m_x_2] < GRAY)
     ):
         return True
@@ -543,6 +547,22 @@ def is_valid_pause(
         return True
     return False
 
+def expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n):
+    i = 1
+    while i < frame_cnt - 1:
+        if vp_y_n[i] == 0 and vp_y_n[i - 1] == 1 and pause_y_n[i - 1] == 0:
+            a = i - 1
+            while pause_y_n[a] == 0 and a >= 0:
+                vp_y_n[a] = 0
+                a = a - 1
+        elif vp_y_n[i] == 0 and vp_y_n[i + 1] == 1 and pause_y_n[i + 1] == 0:
+            a = i + 1
+            while pause_y_n[a] == 0 and a < frame_cnt:
+                vp_y_n[a] = 0
+                a = a + 1
+            i = a
+        i = i + 1
+    return vp_y_n
 
 
 def print_progress(i, start, end, start_message, end_message):
@@ -642,30 +662,18 @@ def lazy_version(
                         pc.vp_2_x_4,
                     ):
                         vp_y_n[i] = 0
-                        keep_frame_y_n[i] = 0
                 print_progress(i, start_f, end_f, "开始分析暂停位置", "100%")
             i = i + 1
-        i = 1
-        while i < frame_cnt:
-            if vp_y_n[i] == 0 and vp_y_n[i - 1] == 1 and pause_y_n[i - 1] == 0:
-                a = i - 1
-                while pause_y_n[a] == 0 and a >= 0:
-                    vp_y_n[a] = 0
-                    keep_frame_y_n[a] = 0
-                    a = a - 1
-                a = i + 1
-                while pause_y_n[a] == 0 and a < frame_cnt:
-                    vp_y_n[a] = 0
-                    keep_frame_y_n[a] = 0
-                    a = a + 1
-            i = i + 1
+        
+        vp_y_n = expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n)
+        
         cap.release()
         cap = cv2.VideoCapture(video_path)
         i = 0
         while i < frame_cnt:
             # get a frame
-            ret, frame = cap.read()
-            if keep_frame_y_n[i] == 0:
+            ret, frame = cap.read()            
+            if keep_frame_y_n[i] == 0 or vp_y_n[i] == 0:
                 out.write(frame)
             print_progress(
                 i, start_f, end_f, "已复制开始秒数之前的片段，开始剪掉暂停及加速", "100%，正在复制结束秒数之后的片段请稍后"
@@ -753,19 +761,8 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
             print_progress(i,start_f,end_f,"开始分析暂停位置","100%")            
         i=i+1        
         
-    i=1       
-    while(i<frame_cnt):
-        if vp_y_n[i]==0 and vp_y_n[i-1]==1 and pause_y_n[i-1]==0:
-            a=i-1
-            while(pause_y_n[a]==0 and a>=0):
-                vp_y_n[a]=0
-                a=a-1
-            a=i+1
-            while(pause_y_n[a]==0 and a<frame_cnt):
-                vp_y_n[a]=0
-                a=a+1
-        i=i+1   
-    
+    vp_y_n = expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n)
+        
     cap.release()
     cap = cv2.VideoCapture(video_path)
     has_sound = True
