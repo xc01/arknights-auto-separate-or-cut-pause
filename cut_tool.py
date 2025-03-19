@@ -723,7 +723,14 @@ def lazy_version(
     cap.release()
     cv2.destroyAllWindows()
 
-
+def get_file_suffix(vp_value, pause_value):
+    if vp_value == 0:
+        return '有效暂停'
+    elif pause_value == 0:
+        return '无效暂停'
+    else:
+        return ''
+        
 def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second):
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     cap = cv2.VideoCapture(video_path)
@@ -738,7 +745,6 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     end_f=end_second*fps  #end frame   (will keep frames after this)
 
     size = (int(lgt),int(hgt))  # requires both int
-    out = cv2.VideoWriter('./working_folder/out.mp4', fourcc, fps, size)
     
     pc = PointCoordinates()
     pc.calculate_coordinates(lgt,hgt,top_margin,bottom_margin,left_margin,right_margin);        
@@ -772,19 +778,18 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
         has_sound = False
         
     index=0    
-    vp=''
-    if vp_y_n[0]==0:
-        vp='有效暂停'
-    elif pause_y_n[0]==0:
-        vp='无效暂停'
-    else:
-        vp=''
+    
+    vp = get_file_suffix(vp_y_n[0], pause_y_n[0])
+    
     out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
     start_time=0
     stop_time=0
     inc=1/fps*1000
     check=0
-    i=0
+    
+    ret, frame = cap.read()
+    out.write(frame)
+    stop_time=inc
 
             #stop_time=inc
             #stop_time=stop_time+inc
@@ -792,14 +797,10 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
             #word=sound[start_time:stop_time+fps]
             #word.export('./working_folder/out_'+str(index)+'.mp3')
             #start_time=stop_time
-
+    i = 1
     while(i<frame_cnt-1):
-        # get a frame
         ret, frame = cap.read()
-        if i==0:
-            out.write(frame)
-            stop_time=inc
-        elif pause_y_n[i]==pause_y_n[i-1]:
+        if pause_y_n[i]==pause_y_n[i-1]:
             check=0
             out.write(frame)
             stop_time=stop_time+inc
@@ -808,25 +809,15 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                 out.write(frame)
                 stop_time=stop_time+inc
             else:
-                out.release()
-                if vp_y_n[int(round(start_time/inc,0))]==0:
-                    vp='有效暂停'
-                elif pause_y_n[int(round(start_time/inc,0))]==0:
-                    vp='无效暂停'
-                else:
-                    vp=''
+                out.release()                
+                vp = get_file_suffix(vp_y_n[int(round(start_time/inc,0))], pause_y_n[int(round(start_time/inc,0))])
                 if(has_sound):
                     word=sound[start_time:stop_time+fps]
                     word.export('./working_folder/out_'+str(index)+vp+'.mp3')
                     #print("first part start_time to stop_time is ", start_time, " ", stop_time)
                 start_time=stop_time
-                index=index+1
-                if vp_y_n[i]==0:
-                    vp='有效暂停'
-                elif pause_y_n[i]==0:
-                    vp='无效暂停'
-                else:
-                    vp=''
+                index=index+1                
+                vp = get_file_suffix(vp_y_n[i], pause_y_n[i])                
                 out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
                 out.write(frame)
                 stop_time=stop_time+inc
@@ -837,12 +828,7 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                     #print("second part start_time to stop_time is ", start_time, " ", stop_time)
                 start_time=stop_time
                 index=index+1
-                if vp_y_n[i+1]==0:
-                    vp='有效暂停'
-                elif pause_y_n[i+1]==0:
-                    vp='无效暂停'
-                else:
-                    vp=''
+                vp = get_file_suffix(vp_y_n[i+1], pause_y_n[i+1])   
                 out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
                 check=1
         else:
@@ -850,26 +836,15 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                 out.write(frame)
                 stop_time=stop_time+inc
             else:
-                check=0
                 out.release()
-                if vp_y_n[int(round(start_time/inc,0))]==0:
-                    vp='有效暂停'
-                elif pause_y_n[int(round(start_time/inc,0))]==0:
-                    vp='无效暂停'
-                else:
-                    vp=''
+                vp = get_file_suffix(vp_y_n[int(round(start_time/inc,0))], pause_y_n[int(round(start_time/inc,0))])
                 if(has_sound):
                     word=sound[start_time:stop_time+fps]            
                     word.export('./working_folder/out_'+str(index)+vp+'.mp3')
                     #print("third part start_time to stop_time is ", start_time, " ", stop_time)
                 start_time=stop_time
                 index=index+1
-                if vp_y_n[i]==0:
-                    vp='有效暂停'
-                elif pause_y_n[i]==0:
-                    vp='无效暂停'
-                else:
-                    vp=''
+                vp = get_file_suffix(vp_y_n[i], pause_y_n[i])      
                 out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
                 out.write(frame)
                 stop_time=stop_time+inc
@@ -879,12 +854,7 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
         i=i+1
 
     out.release()
-    if vp_y_n[int(round(start_time/inc,0))]==0:
-        vp='有效暂停'
-    elif pause_y_n[int(round(start_time/inc,0))]==0:
-        vp='无效暂停'
-    else:
-        vp=''
+    vp = get_file_suffix(vp_y_n[int(round(start_time/inc,0))], pause_y_n[int(round(start_time/inc,0))]) 
     
     if(has_sound):
         word=sound[start_time:stop_time+fps]
@@ -931,11 +901,11 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                     dummy=0    
             print_progress(i,0,count,"视频未检测出音频，仅重命名","100%，重命名完成")      
             i=i+1
-    if(has_sound):       
-        for root , dirs, files in os.walk(working_path):
-            for name in files:
-                if name.startswith("out"):
-                    os.remove(os.path.join(root, name))   
+    # if(has_sound):       
+        # for root , dirs, files in os.walk(working_path):
+            # for name in files:
+                # if name.startswith("out"):
+                    # os.remove(os.path.join(root, name))   
 
 # main here
 win = Tk()
@@ -975,7 +945,7 @@ b_save_settings = Button(
         e_left_margin.get(),
         e_right_margin.get(),
     ),
-    font=20,
+    font=20
 )
 
 l_measure_margin_second = Label(win, text="检测边距秒数", font=20, height=2)
@@ -985,7 +955,7 @@ b_measure_margin = Button(
     win,
     text="检测边距",
     command=lambda: measure_margin(e_measure_margin_second.get()),
-    font=20,
+    font=20
 )
 b_crop = Button(
     win,
@@ -996,7 +966,7 @@ b_crop = Button(
         e_left_margin.get(),
         e_right_margin.get(),
     ),
-    font=20,
+    font=20
 )
 
 l_start_second = Label(win, text="开始秒数", font=20, height=2)
@@ -1017,7 +987,7 @@ b_cut_without_crop = Button(
         e_start_second.get(),
         e_end_second.get(),
     ),
-    font=20,
+    font=20
 )
 b_cut_with_crop = Button(
     win,
@@ -1025,7 +995,7 @@ b_cut_with_crop = Button(
     command=lambda: cut_with_crop(
         e_start_second.get(), e_end_second.get(), e_measure_margin_second.get()
     ),
-    font=20,
+    font=20
 )
 
 l_tutorial = Label(win, text="详细操作教程：", font=20, height=2)
