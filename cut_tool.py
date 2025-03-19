@@ -901,11 +901,11 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                     dummy=0    
             print_progress(i,0,count,"视频未检测出音频，仅重命名","100%，重命名完成")      
             i=i+1
-    # if(has_sound):       
-        # for root , dirs, files in os.walk(working_path):
-            # for name in files:
-                # if name.startswith("out"):
-                    # os.remove(os.path.join(root, name))   
+    if(has_sound):       
+        for root , dirs, files in os.walk(working_path):
+            for name in files:
+                if name.startswith("out"):
+                    os.remove(os.path.join(root, name))   
 
 # main here
 win = Tk()
