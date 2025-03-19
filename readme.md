@@ -21,3 +21,7 @@ python版本为3.6.8
 打包时先运行下面命令
 pyinstaller -D .\cut_tool.py
 再将git目录下的cv2，numpy，pydub，bin（这个文件超过100M是unzip_me开头那个）覆盖进去，创建一个空working_folder再一起zip打包即可
+
+
+TODO:
+![TODO](pics/todo.png "TODO")
