@@ -107,7 +107,7 @@ def check_file_and_return_path():
     file_cnt = 0
     working_folder_list = os.listdir(working_path)
     for lists in working_folder_list:
-        file_cnt = file_cnt + 1
+        file_cnt += 1
     if file_cnt == 1:
         if working_folder_list[0].startswith("out"):
             messagebox.showerror(title="出错了！", message="文件名不得以out开头，请重命名")
@@ -549,20 +549,18 @@ def is_valid_pause(
     return False
 
 def expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n):
-    i = 1
-    while i < frame_cnt - 1:
+    for i in range(1, frame_cnt - 1):
         if vp_y_n[i] == 0 and vp_y_n[i - 1] == 1 and pause_y_n[i - 1] == 0:
             a = i - 1
             while pause_y_n[a] == 0 and a >= 0:
                 vp_y_n[a] = 0
-                a = a - 1
+                a -= 1
         elif vp_y_n[i] == 0 and vp_y_n[i + 1] == 1 and pause_y_n[i + 1] == 0:
             a = i + 1
             while pause_y_n[a] == 0 and a < frame_cnt:
                 vp_y_n[a] = 0
-                a = a + 1
+                a += 1
             i = a
-        i = i + 1
     return vp_y_n
 
 
@@ -635,8 +633,7 @@ def lazy_version(
     
     if mode == "懒人模式（保留有效暂停）":        
         tc.time_start("分析暂停")
-        i = 0
-        while i < frame_cnt:
+        for i in range(frame_cnt):
             # get a frame
             if i <= end_f:
                 ret, frame = cap.read()
@@ -689,8 +686,6 @@ def lazy_version(
                     ):
                         vp_y_n[i] = 0
                 print_progress(i, start_f, end_f, "开始分析暂停位置", "100%")
-            i = i + 1
-            
         vp_y_n = expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n)
         
         tc.time_end()
@@ -700,8 +695,7 @@ def lazy_version(
         
         
         tc.time_start("生成视频")
-        i = 0
-        while i < frame_cnt:
+        for i in range(frame_cnt):
             # get a frame
             ret, frame = cap.read()            
             if keep_frame_y_n[i] == 0 or vp_y_n[i] == 0:
@@ -709,15 +703,12 @@ def lazy_version(
             print_progress(
                 i, start_f, end_f, "已复制开始秒数之前的片段，开始剪掉暂停及加速", "100%，正在复制结束秒数之后的片段请稍后"
             )
-            i = i + 1
             
         tc.time_end()
         
     elif mode == "懒人模式（暂停全剪）":
         tc.time_start("生成视频")
-        i = 0
-        while i < frame_cnt:
-            # get a frame
+        for i in range(frame_cnt):
             ret, frame = cap.read()
             if i < start_f or i > end_f:
                 out.write(frame)
@@ -754,7 +745,6 @@ def lazy_version(
                 print_progress(
                     i, start_f, end_f, "已复制开始秒数之前的片段，开始剪掉暂停及加速", "100%，正在复制结束秒数之后的片段请稍后"
                 )
-            i = i + 1
         tc.time_end()
         
     cap.release()
@@ -786,8 +776,7 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     tc = TimeCost()
        
     tc.time_start("分析暂停")
-    i=0
-    while i<frame_cnt:     
+    for i in range(frame_cnt):
         if i<=end_f:
             ret, frame = cap.read()   
         if i>=start_f and i<=end_f:
@@ -797,9 +786,7 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                 if is_valid_pause(frame,pc.vp_y,pc.vp_x_1,pc.vp_x_2,pc.vp_x_3,pc.vp_x_4,
                         pc.vp_2_y,pc.vp_2_x_1,pc.vp_2_x_2,pc.vp_2_x_3,pc.vp_2_x_4):
                     vp_y_n[i]=0         
-            print_progress(i,start_f,end_f,"开始分析暂停位置","100%")            
-        i=i+1        
-        
+            print_progress(i,start_f,end_f,"开始分析暂停位置","100%")  
     vp_y_n = expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n)
         
     tc.time_end()
@@ -812,96 +799,56 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     except:
         has_sound = False
         
-    index=0    
     
+    tc.time_start("生成视频片段")
+    index = 0
     vp = get_file_suffix(vp_y_n[0], pause_y_n[0])
-    
-    out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
-    start_time=0
-    stop_time=0
-    inc=1/fps*1000
-    check=0
-    
-    ret, frame = cap.read()
-    out.write(frame)
-    stop_time=inc
-
-            #stop_time=inc
-            #stop_time=stop_time+inc
-
-            #word=sound[start_time:stop_time+fps]
-            #word.export('./working_folder/out_'+str(index)+'.mp3')
-            #start_time=stop_time
-    
-    tc.time_start("生成视频音频片段")
-    i = 1
-    while(i<frame_cnt):
+    out = cv2.VideoWriter(working_path +"out_"+str(index)+vp+".mp4", fourcc, fps, size)
+    for i in range(frame_cnt):
         ret, frame = cap.read()
         if pause_y_n[i]==pause_y_n[i-1]:
-            check=0
             out.write(frame)
-            stop_time=stop_time+inc
-        elif pause_y_n[i]!=pause_y_n[i-1] and pause_y_n[i+1]!=pause_y_n[i]:
-            if check==1:
-                out.write(frame)
-                stop_time=stop_time+inc
-            else:
-                out.release()                
-                vp = get_file_suffix(vp_y_n[int(round(start_time/inc,0))], pause_y_n[int(round(start_time/inc,0))])
-                if(has_sound):
-                    word=sound[start_time:stop_time+fps]
-                    word.export('./working_folder/out_'+str(index)+vp+'.mp3')
-                    #print("first part start_time to stop_time is ", start_time, " ", stop_time)
-                start_time=stop_time
-                index=index+1                
-                vp = get_file_suffix(vp_y_n[i], pause_y_n[i])                
-                out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
-                out.write(frame)
-                stop_time=stop_time+inc
-                out.release()
-                if(has_sound):
-                    word=sound[start_time:stop_time+fps]            
-                    word.export('./working_folder/out_'+str(index)+vp+'.mp3')
-                    #print("second part start_time to stop_time is ", start_time, " ", stop_time)
-                start_time=stop_time
-                index=index+1
-                vp = get_file_suffix(vp_y_n[i+1], pause_y_n[i+1])   
-                out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
-                check=1
         else:
-            if check==1:
-                out.write(frame)
-                stop_time=stop_time+inc
-            else:
-                out.release()
-                vp = get_file_suffix(vp_y_n[int(round(start_time/inc,0))], pause_y_n[int(round(start_time/inc,0))])
-                if(has_sound):
-                    word=sound[start_time:stop_time+fps]            
-                    word.export('./working_folder/out_'+str(index)+vp+'.mp3')
-                    #print("third part start_time to stop_time is ", start_time, " ", stop_time)
-                start_time=stop_time
-                index=index+1
-                vp = get_file_suffix(vp_y_n[i], pause_y_n[i])      
-                out = cv2.VideoWriter('./working_folder/out_'+str(index)+vp+'.mp4', fourcc, fps, size)
-                out.write(frame)
-                stop_time=stop_time+inc
-        
+            out.release()
+            index += 1
+            vp = get_file_suffix(vp_y_n[i], pause_y_n[i])
+            out = cv2.VideoWriter(working_path +"out_"+str(index)+vp+".mp4", fourcc, fps, size)
+            out.write(frame)
         print_progress(i,start_f,end_f,"已复制开始秒数之前的片段，继续生成分离片段","100%，正在复制结束秒数之后的片段请稍后")
-        
-        i=i+1
-
     out.release()
-    vp = get_file_suffix(vp_y_n[int(round(start_time/inc,0))], pause_y_n[int(round(start_time/inc,0))]) 
-    
-    if(has_sound):
-        word=sound[start_time:stop_time+fps]
-        word.export('./working_folder/out_'+str(index)+vp+'.mp3')                 
-        #print("last part start_time to stop_time is ", start_time, " ", stop_time)
-        
+       
     tc.time_end()
     
-    cap.release()
+    cap.release()    
     cv2.destroyAllWindows()
+    
+    
+    if has_sound:
+        tc.time_start("生成音频片段")
+        
+        start_seg = 0
+        end_seg = 0
+        inc=1/fps*1000
+        index = 0
+        vp = get_file_suffix(vp_y_n[0], pause_y_n[0])
+        for i in range(frame_cnt):
+            end_seg += 1
+            if pause_y_n[i]!=pause_y_n[i-1]:
+                out_a = sound[start_seg * inc : (end_seg - 1) * inc + fps]
+                #print("start is ", start_seg * inc, ", end is ", (end_seg - 1) * inc + fps)
+                out_a.export(working_path +"out_" + str(index) + vp + ".mp3")
+                vp = get_file_suffix(vp_y_n[i], pause_y_n[i])
+                index += 1
+                start_seg = end_seg - 1
+       
+        out_a = sound[start_seg * inc : end_seg * inc + fps]
+        #print("start is ", start_seg * inc, ", end is ", (end_seg - 1) * inc + fps)
+        out_a.export(working_path +"out_" + str(index) + vp + ".mp3")
+        
+        tc.time_end()
+      
+    
+                 
     
   
     working_folder_list=os.listdir(working_path)
@@ -912,8 +859,7 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     
     tc.time_start("合并视频音频")
     
-    i=0
-    while(i<=count):
+    for i in range(count + 1):
         j=pow(10,len(str(count)))+i
         if(has_sound):
             subprocess.call('ffmpeg -loglevel ''quiet'' -i '+working_path+"out_"+str(i)+".mp4"+' -i '+working_path+"out_"+str(i)+".mp3"+' -c:v copy -c:a aac '+working_path+str(j)+".mp4",shell = True)
@@ -942,9 +888,7 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                     os.rename(working_path+"out_"+str(i)+"无效暂停.mp4",working_path+str(j)+"无效暂停.mp4")
                 except:
                     dummy=0    
-            print_progress(i,0,count,"视频未检测出音频，仅重命名","100%，重命名完成")      
-            i=i+1
-    
+            print_progress(i,0,count,"视频未检测出音频，仅重命名","100%，重命名完成")          
     
     tc.time_end()
     tc.time_start("清理片段")
