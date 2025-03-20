@@ -250,7 +250,7 @@ def cut_with_crop(start_second, end_second, measure_margin_second):
                 e_top_margin.get(),
                 e_bottom_margin.get(),
                 e_left_margin.get(),
-                e_right_margin.get(),
+                e_right_margin.get()
             ):
                 cut_without_crop(
                     e_mode.get(),
@@ -259,7 +259,7 @@ def cut_with_crop(start_second, end_second, measure_margin_second):
                     e_left_margin.get(),
                     e_right_margin.get(),
                     start_second,
-                    end_second,
+                    end_second
                 )
 
 
@@ -347,7 +347,7 @@ def cut_without_crop(
                             int(left_margin),
                             int(right_margin),
                             int(start_second),
-                            int(end_second),
+                            int(end_second)
                         )
                         # already know these variables are int, thus cast here instead of inside
                         print("已完成，请在working_folder下查看out.mp4文件")
@@ -360,7 +360,7 @@ def cut_without_crop(
                             int(left_margin),
                             int(right_margin),
                             int(start_second),
-                            int(end_second),
+                            int(end_second)
                         )
                         print("已完成，请在working_folder下查看分离的mp4文件")
 
@@ -388,7 +388,7 @@ class PointCoordinates:
             0,
             0,
             0,
-            0,
+            0
         )
 
     def calculate_coordinates(
@@ -459,7 +459,7 @@ def is_pause(
     m_p_m_y,
     m_p_m_x,
     m_p_r_y,
-    m_p_r_x,
+    m_p_r_x
 ):
     if abs(
             float(sum(frame[p_l_y, p_l_x]) / len(frame[p_l_y, p_l_x]))
@@ -502,7 +502,7 @@ def is_valid_pause(
     vp_2_x_1,
     vp_2_x_2,
     vp_2_x_3,
-    vp_2_x_4,
+    vp_2_x_4
 ):
     if all(frame[vp_y - 5, vp_x_1] < BLACK_9):
         if (
@@ -588,12 +588,12 @@ class TimeCost:
         self.end = datetime
     def time_start(self,process_name):
         self.start = datetime.datetime.now()
-        print("    为" + process_name + "步骤计时")
-        print("    计时开始于" + str(self.start))
+        print("    为 " + process_name + " 步骤计时")
+        print("    计时开始于 " + str(self.start))
     def time_end(self):
         self.end = datetime.datetime.now()
-        print("    计时结束于" + str(self.end))
-        print("        用时" + str(self.end - self.start))
+        print("    计时结束于 " + str(self.end))
+        print("        用时 " + str(self.end - self.start))
             
 
 def lazy_version(
@@ -604,7 +604,7 @@ def lazy_version(
     left_margin,
     right_margin,
     start_second,
-    end_second,
+    end_second
 ):
     fourcc = cv2.VideoWriter_fourcc("m", "p", "4", "v")
     cap = cv2.VideoCapture(video_path)
@@ -657,7 +657,7 @@ def lazy_version(
                         pc.m_p_m_y,
                         pc.m_p_m_x,
                         pc.m_p_r_y,
-                        pc.m_p_r_x,
+                        pc.m_p_r_x
                     )
                 ):
                     if not (
@@ -685,7 +685,7 @@ def lazy_version(
                         pc.vp_2_x_1,
                         pc.vp_2_x_2,
                         pc.vp_2_x_3,
-                        pc.vp_2_x_4,
+                        pc.vp_2_x_4
                     ):
                         vp_y_n[i] = 0
                 print_progress(i, start_f, end_f, "开始分析暂停位置", "100%")
@@ -736,7 +736,7 @@ def lazy_version(
                         pc.m_p_m_y,
                         pc.m_p_m_x,
                         pc.m_p_r_y,
-                        pc.m_p_r_x,
+                        pc.m_p_r_x
                     )
                 ):
                     if not (
@@ -994,7 +994,7 @@ b_save_settings = Button(
         e_top_margin.get(),
         e_bottom_margin.get(),
         e_left_margin.get(),
-        e_right_margin.get(),
+        e_right_margin.get()
     ),
     font=20
 )
@@ -1015,7 +1015,7 @@ b_crop = Button(
         e_top_margin.get(),
         e_bottom_margin.get(),
         e_left_margin.get(),
-        e_right_margin.get(),
+        e_right_margin.get()
     ),
     font=20
 )
@@ -1036,7 +1036,7 @@ b_cut_without_crop = Button(
         e_left_margin.get(),
         e_right_margin.get(),
         e_start_second.get(),
-        e_end_second.get(),
+        e_end_second.get()
     ),
     font=20
 )
