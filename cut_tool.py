@@ -10,6 +10,7 @@ from pydub import AudioSegment
 import subprocess
 import webbrowser
 import math
+import datetime
 
 #global variable
 path = os.getcwd()
@@ -572,7 +573,29 @@ def print_progress(i, start, end, start_message, end_message):
         print(end_message)
     elif (i - start) % ((end - start) / 10) < 1 and i > start and i < end:
         print(str(int((i - start) / ((end - start) / 10))) + "0%")
-        
+
+def get_file_suffix(vp_value, pause_value):
+    if vp_value == 0:
+        return '有效暂停'
+    elif pause_value == 0:
+        return '无效暂停'
+    else:
+        return ''
+
+class TimeCost:
+    def __init__(self):
+        self.start = datetime
+        self.end = datetime
+    def time_start(self,process_name):
+        self.start = datetime.datetime.now()
+        print("    为" + process_name + "步骤计时")
+        print("    计时开始于" + str(self.start))
+    def time_end(self):
+        self.end = datetime.datetime.now()
+        print("    计时结束于" + str(self.end))
+        print("        用时" + str(self.end - self.start))
+            
+
 def lazy_version(
     video_path,
     mode,
@@ -607,8 +630,11 @@ def lazy_version(
     pause_y_n = np.ones(frame_cnt)  # 0 means a pause, 1 means not a pause
     vp_y_n = np.ones(frame_cnt)
     keep_frame_y_n = np.ones(frame_cnt)  # 0 means keep, 1 means no keep
-
-    if mode == "懒人模式（保留有效暂停）":
+    
+    tc = TimeCost()
+    
+    if mode == "懒人模式（保留有效暂停）":        
+        tc.time_start("分析暂停")
         i = 0
         while i < frame_cnt:
             # get a frame
@@ -664,11 +690,16 @@ def lazy_version(
                         vp_y_n[i] = 0
                 print_progress(i, start_f, end_f, "开始分析暂停位置", "100%")
             i = i + 1
-        
+            
         vp_y_n = expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n)
+        
+        tc.time_end()
         
         cap.release()
         cap = cv2.VideoCapture(video_path)
+        
+        
+        tc.time_start("生成视频")
         i = 0
         while i < frame_cnt:
             # get a frame
@@ -679,7 +710,11 @@ def lazy_version(
                 i, start_f, end_f, "已复制开始秒数之前的片段，开始剪掉暂停及加速", "100%，正在复制结束秒数之后的片段请稍后"
             )
             i = i + 1
+            
+        tc.time_end()
+        
     elif mode == "懒人模式（暂停全剪）":
+        tc.time_start("生成视频")
         i = 0
         while i < frame_cnt:
             # get a frame
@@ -720,16 +755,11 @@ def lazy_version(
                     i, start_f, end_f, "已复制开始秒数之前的片段，开始剪掉暂停及加速", "100%，正在复制结束秒数之后的片段请稍后"
                 )
             i = i + 1
+        tc.time_end()
+        
     cap.release()
     cv2.destroyAllWindows()
 
-def get_file_suffix(vp_value, pause_value):
-    if vp_value == 0:
-        return '有效暂停'
-    elif pause_value == 0:
-        return '无效暂停'
-    else:
-        return ''
         
 def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_margin,start_second,end_second):
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
@@ -753,6 +783,9 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     pause_y_n=np.ones(frame_cnt)  #0 means a pause, 1 means not a pause
     vp_y_n=np.ones(frame_cnt)  
     
+    tc = TimeCost()
+       
+    tc.time_start("分析暂停")
     i=0
     while i<frame_cnt:     
         if i<=end_f:
@@ -769,6 +802,8 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
         
     vp_y_n = expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n)
         
+    tc.time_end()
+    
     cap.release()
     cap = cv2.VideoCapture(video_path)
     has_sound = True
@@ -797,8 +832,10 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
             #word=sound[start_time:stop_time+fps]
             #word.export('./working_folder/out_'+str(index)+'.mp3')
             #start_time=stop_time
+    
+    tc.time_start("生成视频音频片段")
     i = 1
-    while(i<frame_cnt-1):
+    while(i<frame_cnt):
         ret, frame = cap.read()
         if pause_y_n[i]==pause_y_n[i-1]:
             check=0
@@ -861,6 +898,8 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
         word.export('./working_folder/out_'+str(index)+vp+'.mp3')                 
         #print("last part start_time to stop_time is ", start_time, " ", stop_time)
         
+    tc.time_end()
+    
     cap.release()
     cv2.destroyAllWindows()
     
@@ -869,6 +908,10 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     working_folder_list.sort(key=lambda fn: os.path.getmtime(working_path+fn) if not os.path.isdir(working_path+fn) else 0)
 
     count=int(working_folder_list[-1].split("_")[1].split(".")[0])
+    
+    
+    tc.time_start("合并视频音频")
+    
     i=0
     while(i<=count):
         j=pow(10,len(str(count)))+i
@@ -901,12 +944,20 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
                     dummy=0    
             print_progress(i,0,count,"视频未检测出音频，仅重命名","100%，重命名完成")      
             i=i+1
+    
+    
+    tc.time_end()
+    tc.time_start("清理片段")
+    
     if(has_sound):       
         for root , dirs, files in os.walk(working_path):
             for name in files:
                 if name.startswith("out"):
                     os.remove(os.path.join(root, name))   
 
+    tc.time_end()
+    
+    
 # main here
 win = Tk()
 win.title("明日方舟自动分离/剪掉暂停")
