@@ -6,7 +6,7 @@ import os
 import cv2
 import numpy as np
 import sys
-from pydub import AudioSegment
+#from pydub import AudioSegment   TODO: this module could be removed
 import subprocess
 import webbrowser
 import math
@@ -592,7 +592,7 @@ class TimeCost:
         self.end = datetime.datetime.now()
         print("    计时结束于 " + str(self.end))
         print("        用时 " + str(self.end - self.start))
-            
+        
 
 def lazy_version(
     video_path,
@@ -790,116 +790,36 @@ def normal_version(video_path,mode,top_margin,bottom_margin,left_margin,right_ma
     vp_y_n = expand_valid_pause_range(frame_cnt, pause_y_n, vp_y_n)
         
     tc.time_end()
-    
-    cap.release()
-    cap = cv2.VideoCapture(video_path)
-    has_sound = True
-    try:
-        sound = AudioSegment.from_file(video_path, format=os.path.splitext(video_path)[-1].split(".")[1])    
-    except:
-        has_sound = False
+                    
+    cap.release()    
+    cv2.destroyAllWindows()
         
     
     tc.time_start("生成视频片段")
+
+    
+    start_ss = 0
+    end_ss = 0
     index = 0
     vp = get_file_suffix(vp_y_n[0], pause_y_n[0])
-    out = cv2.VideoWriter(working_path +"out_"+str(index)+vp+".mp4", fourcc, fps, size)
     for i in range(frame_cnt):
-        ret, frame = cap.read()
-        if pause_y_n[i]==pause_y_n[i-1]:
-            out.write(frame)
-        else:
-            out.release()
-            index += 1
+        if pause_y_n[i]!=pause_y_n[i-1]:
+            end_ss = i / fps
+            print("index is ", index, ", start_ss is ", start_ss, ", end_ss is ", end_ss)
+            subprocess.call("ffmpeg -loglevel quiet -i " + video_path + " -ss " + str(start_ss) + " -to " + str(end_ss) 
+                + " -c:v libx264 -copyts -c:a aac " + working_path + "out_"  + str(index) + vp +".mp4",shell = True)
             vp = get_file_suffix(vp_y_n[i], pause_y_n[i])
-            out = cv2.VideoWriter(working_path +"out_"+str(index)+vp+".mp4", fourcc, fps, size)
-            out.write(frame)
-        print_progress(i,start_f,end_f,"已复制开始秒数之前的片段，继续生成分离片段","100%，正在复制结束秒数之后的片段请稍后")
-    out.release()
-       
+            index += 1
+            start_ss = end_ss
+        print_progress(i,start_f,end_f,"已复制开始秒数之前的片段，继续生成分离片段","100%，正在复制结束秒数之后的片段请稍后")    
+    
+    end_ss = i / fps
+    print("index is ", index, ", start_ss is ", start_ss, ", end_ss is ", end_ss)
+    subprocess.call("ffmpeg -loglevel quiet -i " + video_path + " -ss " + str(start_ss) + " -to " + str(end_ss) 
+        + " -c:v libx264 -copyts -c:a aac " + working_path + "out_"  + str(index) + vp +".mp4",shell = True)
     tc.time_end()
-    
-    cap.release()    
-    cv2.destroyAllWindows()
-    
-    
-    if has_sound:
-        tc.time_start("生成音频片段")
+          
         
-        start_seg = 0
-        end_seg = 0
-        inc=1/fps*1000
-        index = 0
-        vp = get_file_suffix(vp_y_n[0], pause_y_n[0])
-        for i in range(frame_cnt):
-            end_seg += 1
-            if pause_y_n[i]!=pause_y_n[i-1]:
-                out_a = sound[start_seg * inc : (end_seg - 1) * inc + fps]
-                #print("start is ", start_seg * inc, ", end is ", (end_seg - 1) * inc + fps)
-                out_a.export(working_path +"out_" + str(index) + vp + ".mp3")
-                vp = get_file_suffix(vp_y_n[i], pause_y_n[i])
-                index += 1
-                start_seg = end_seg - 1
-       
-        out_a = sound[start_seg * inc : end_seg * inc + fps]
-        #print("start is ", start_seg * inc, ", end is ", (end_seg - 1) * inc + fps)
-        out_a.export(working_path +"out_" + str(index) + vp + ".mp3")
-        
-        tc.time_end()
-      
-    
-                 
-    
-  
-    working_folder_list=os.listdir(working_path)
-    working_folder_list.sort(key=lambda fn: os.path.getmtime(working_path+fn) if not os.path.isdir(working_path+fn) else 0)
-
-    count=int(working_folder_list[-1].split("_")[1].split(".")[0])
-    
-    
-    tc.time_start("合并视频音频")
-    
-    for i in range(count + 1):
-        j=pow(10,len(str(count)))+i
-        if(has_sound):
-            subprocess.call('ffmpeg -loglevel ''quiet'' -i '+working_path+"out_"+str(i)+".mp4"+' -i '+working_path+"out_"+str(i)+".mp3"+' -c:v copy -c:a aac '+working_path+str(j)+".mp4",shell = True)
-            subprocess.call('ffmpeg -loglevel ''quiet'' -i '+working_path+"out_"+str(i)+"有效暂停.mp4"+' -i '+working_path+"out_"+str(i)+"有效暂停.mp3"+' -c:v copy -c:a aac '+working_path+str(j)+"有效暂停.mp4",shell = True)
-            if(mode=="正常模式（保留无效暂停视频）"):
-                subprocess.call('ffmpeg -loglevel ''quiet'' -i '+working_path+"out_"+str(i)+"无效暂停.mp4"+' -i '+working_path+"out_"+str(i)+"无效暂停.mp3"+' -c:v copy -c:a aac '+working_path+str(j)+"无效暂停.mp4",shell = True)
-            else:    
-                try:
-                    os.rename(working_path+"out_"+str(i)+"无效暂停.mp3",working_path+str(j)+"无效暂停.mp3")
-                except:
-                    dummy=0                
-            
-            print_progress(i,0,count,"开始合并音频视频片段","100%，正在清理片段请稍后")
-            i=i+1
-        else:
-            try:
-                os.rename(working_path+"out_"+str(i)+".mp4",working_path+str(j)+".mp4")
-            except:
-                dummy=0
-            try:
-                os.rename(working_path+"out_"+str(i)+"有效暂停.mp4",working_path+str(j)+"有效暂停.mp4")
-            except:
-                dummy=0   
-            if(mode=="正常模式（保留无效暂停视频）"):
-                try:
-                    os.rename(working_path+"out_"+str(i)+"无效暂停.mp4",working_path+str(j)+"无效暂停.mp4")
-                except:
-                    dummy=0    
-            print_progress(i,0,count,"视频未检测出音频，仅重命名","100%，重命名完成")          
-    
-    tc.time_end()
-    tc.time_start("清理片段")
-    
-    if(has_sound):       
-        for root , dirs, files in os.walk(working_path):
-            for name in files:
-                if name.startswith("out"):
-                    os.remove(os.path.join(root, name))   
-
-    tc.time_end()
     
     
 # main here
